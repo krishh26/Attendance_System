@@ -1,0 +1,131 @@
+<div class="roles-container">
+  <!-- Summary Cards -->
+  <div class="summary-cards">
+    <div class="summary-card">
+      <div class="card-icon">
+        <i class="fas fa-user-shield"></i>
+      </div>
+      <div class="card-content">
+        <h3>Total Roles</h3>
+        <p>{{ summaryStats.totalRoles }}</p>
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="card-icon active">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <div class="card-content">
+        <h3>Active Roles</h3>
+        <p>{{ summaryStats.activeRoles }}</p>
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="card-icon permissions">
+        <i class="fas fa-key"></i>
+      </div>
+      <div class="card-content">
+        <h3>Total Permissions</h3>
+        <p>{{ summaryStats.totalPermissions }}</p>
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="card-icon users">
+        <i class="fas fa-users-cog"></i>
+      </div>
+      <div class="card-content">
+        <h3>Users with Roles</h3>
+        <p>{{ summaryStats.usersWithRoles }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="content-section">
+    <div class="header">
+      <h1>Roles & Permissions</h1>
+      <button class="btn-add">
+        <i class="fas fa-plus"></i>
+        Create New Role
+      </button>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Search roles...">
+      </div>
+
+      <div class="filter-buttons">
+        <button class="btn-filter active">All</button>
+        <button class="btn-filter">Active</button>
+        <button class="btn-filter">Inactive</button>
+      </div>
+    </div>
+
+    <!-- Roles Cards -->
+    <div class="roles-grid">
+      <div class="role-card" *ngFor="let role of roles">
+        <div class="role-header">
+          <div class="role-title">
+            <h3>{{ role.name }}</h3>
+            <span class="status-badge" [class.active]="role.isActive">
+              {{ role.isActive ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
+          <div class="role-actions">
+            <button class="btn-icon" title="Edit Role">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn-icon" title="Delete Role">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+
+        <p class="role-description">{{ role.description }}</p>
+
+        <div class="role-stats">
+          <div class="stat">
+            <i class="fas fa-users"></i>
+            <span>{{ role.usersCount }} Users</span>
+          </div>
+          <div class="stat">
+            <i class="fas fa-calendar-alt"></i>
+            <span>Created: {{ role.createdAt }}</span>
+          </div>
+        </div>
+
+        <div class="permissions-section">
+          <h4>Permissions</h4>
+          <div class="permissions-list">
+            <div class="module-permissions" *ngFor="let module of getPermissionGroups(role.permissions) | keyvalue">
+              <div class="module-name">{{ module.key }}</div>
+              <div class="permission-chips">
+                <span class="permission-chip" *ngFor="let permission of module.value">
+                  {{ permission.name }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination">
+      <button class="btn-page" disabled>
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <button class="btn-page active">1</button>
+      <button class="btn-page">2</button>
+      <button class="btn-page">3</button>
+      <button class="btn-page">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+</div>

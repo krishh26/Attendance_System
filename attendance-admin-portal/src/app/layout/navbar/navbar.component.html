@@ -1,0 +1,37 @@
+<nav class="navbar">
+  <div class="navbar-left">
+    <button class="toggle-btn" (click)="onToggleSidebar()">
+      <i class="fas fa-bars"></i>
+    </button>
+    <span class="brand">Attendance Admin</span>
+  </div>
+
+  <div class="navbar-right">
+    <div class="user-menu">
+      <button class="user-btn">
+        <div class="user-avatar">
+          <i class="fas fa-user"></i>
+        </div>
+        <div class="user-info">
+          <span class="user-name">Admin</span>
+          <span class="user-role">Administrator</span>
+        </div>
+      </button>
+      <div class="dropdown-menu">
+        <a href="#" class="dropdown-item">
+          <i class="fas fa-user-circle"></i>
+          Profile
+        </a>
+        <a href="#" class="dropdown-item">
+          <i class="fas fa-cog"></i>
+          Settings
+        </a>
+        <div class="divider"></div>
+        <a href="#" class="dropdown-item" (click)="logout()">
+          <i class="fas fa-sign-out-alt"></i>
+          Logout
+        </a>
+      </div>
+    </div>
+  </div>
+</nav>

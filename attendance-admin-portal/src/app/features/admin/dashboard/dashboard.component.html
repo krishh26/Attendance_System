@@ -1,0 +1,125 @@
+<div class="dashboard-container">
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="fas fa-users"></i>
+      </div>
+      <div class="stat-content">
+        <h3>Total Employees</h3>
+        <p class="stat-number">{{ stats.totalEmployees }}</p>
+        <span class="stat-label">Active members</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon present">
+        <i class="fas fa-user-check"></i>
+      </div>
+      <div class="stat-content">
+        <h3>Present Today</h3>
+        <p class="stat-number">{{ stats.presentToday }}</p>
+        <span class="stat-label">Employees checked in</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon leave">
+        <i class="fas fa-calendar-minus"></i>
+      </div>
+      <div class="stat-content">
+        <h3>On Leave</h3>
+        <p class="stat-number">{{ stats.onLeave }}</p>
+        <span class="stat-label">Employees on leave</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon requests">
+        <i class="fas fa-clock"></i>
+      </div>
+      <div class="stat-content">
+        <h3>New Requests</h3>
+        <p class="stat-number">{{ stats.newRequests }}</p>
+        <span class="stat-label">Pending approvals</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Grid -->
+  <div class="content-grid">
+    <!-- Attendance by Department -->
+    <div class="card attendance-card">
+      <div class="card-header">
+        <h2>Attendance by Department</h2>
+        <button class="btn-more">
+          <i class="fas fa-ellipsis-v"></i>
+        </button>
+      </div>
+      <div class="attendance-list">
+        <div class="attendance-item" *ngFor="let dept of attendanceByDepartment">
+          <div class="dept-info">
+            <h4>{{ dept.department }}</h4>
+            <p>{{ dept.present }}/{{ dept.total }} Present</p>
+          </div>
+          <div class="progress-bar">
+            <div class="progress" [style.width.%]="calculateAttendancePercentage(dept.present, dept.total)"></div>
+          </div>
+          <span class="percentage">{{ calculateAttendancePercentage(dept.present, dept.total) | number:'1.0-0' }}%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="card activity-card">
+      <div class="card-header">
+        <h2>Recent Activity</h2>
+        <button class="btn-more">View All</button>
+      </div>
+      <div class="activity-list">
+        <div class="activity-item" *ngFor="let activity of recentActivities">
+          <div class="activity-avatar">
+            <img [src]="activity.userAvatar" [alt]="activity.user">
+          </div>
+          <div class="activity-content">
+            <p>
+              <strong>{{ activity.user }}</strong>
+              {{ activity.action }}
+            </p>
+            <span class="activity-time">{{ activity.time }}</span>
+          </div>
+          <div class="activity-icon" [ngClass]="getActivityClass(activity.type)">
+            <i [class]="getActivityIcon(activity.type)"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending Leave Requests -->
+    <div class="card leave-requests-card">
+      <div class="card-header">
+        <h2>Pending Leave Requests</h2>
+        <button class="btn-more">View All</button>
+      </div>
+      <div class="leave-requests-list">
+        <div class="leave-request-item" *ngFor="let request of pendingLeaveRequests">
+          <div class="request-info">
+            <h4>{{ request.employee }}</h4>
+            <p>{{ request.type }}</p>
+            <span class="date-range">{{ request.startDate }} - {{ request.endDate }}</span>
+          </div>
+          <div class="request-actions">
+            <button class="btn-approve">
+              <i class="fas fa-check"></i>
+              Approve
+            </button>
+            <button class="btn-reject">
+              <i class="fas fa-times"></i>
+              Reject
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

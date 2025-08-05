@@ -1,0 +1,94 @@
+<div class="user-details-container">
+  <div class="header">
+    <button class="btn-back" (click)="goBack()">
+      <i class="fas fa-arrow-left"></i>
+      Back to Users
+    </button>
+    <div class="header-actions">
+      <button class="btn-edit">
+        <i class="fas fa-edit"></i>
+        Edit Profile
+      </button>
+    </div>
+  </div>
+
+  <div class="content-grid">
+    <!-- User Profile Card -->
+    <div class="profile-card">
+      <div class="profile-header">
+        <img [src]="user.profileImage" [alt]="user.name" class="profile-image">
+        <div class="profile-info">
+          <h2>{{ user.name }}</h2>
+          <p class="role">{{ user.role }} - {{ user.department }}</p>
+          <span class="status-badge" [class.active]="user.status === 'Active'">
+            {{ user.status }}
+          </span>
+        </div>
+      </div>
+
+      <div class="profile-details">
+        <div class="detail-item">
+          <i class="fas fa-envelope"></i>
+          <div>
+            <label>Email</label>
+            <p>{{ user.email }}</p>
+          </div>
+        </div>
+        <div class="detail-item">
+          <i class="fas fa-phone"></i>
+          <div>
+            <label>Phone</label>
+            <p>{{ user.phone }}</p>
+          </div>
+        </div>
+        <div class="detail-item">
+          <i class="fas fa-map-marker-alt"></i>
+          <div>
+            <label>Address</label>
+            <p>{{ user.address }}</p>
+          </div>
+        </div>
+        <div class="detail-item">
+          <i class="fas fa-phone-volume"></i>
+          <div>
+            <label>Emergency Contact</label>
+            <p>{{ user.emergencyContact }}</p>
+          </div>
+        </div>
+        <div class="detail-item">
+          <i class="fas fa-calendar-alt"></i>
+          <div>
+            <label>Join Date</label>
+            <p>{{ user.joinDate }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Skills Section -->
+    <div class="skills-card">
+      <h3>Skills & Expertise</h3>
+      <div class="skills-list">
+        <span class="skill-tag" *ngFor="let skill of user.skills">
+          {{ skill }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="activity-card">
+      <h3>Recent Activity</h3>
+      <div class="activity-list">
+        <div class="activity-item" *ngFor="let activity of user.recentActivity">
+          <div class="activity-icon">
+            <i [class]="getActivityIcon(activity.type)"></i>
+          </div>
+          <div class="activity-content">
+            <p class="activity-description">{{ activity.description }}</p>
+            <span class="activity-date">{{ activity.date }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
