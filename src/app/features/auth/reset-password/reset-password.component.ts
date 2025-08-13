@@ -53,7 +53,6 @@ export class ResetPasswordComponent implements OnInit {
 
       const password = this.resetPasswordForm.get('password')?.value;
 
-      // TODO: Replace with actual API call
       this.authService.resetPassword(this.token, password).subscribe({
         next: () => {
           this.successMessage = 'Password has been reset successfully.';

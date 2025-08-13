@@ -1,17 +1,29 @@
 <div class="login-container">
   <div class="login-card">
-    <h2>Login</h2>
+    <h2>Login Test</h2>
+    
+    <!-- Error Message -->
+    <div class="alert alert-danger" *ngIf="errorMessage">
+      {{ errorMessage }}
+    </div>
+
     <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
       <div class="form-group">
-        <label for="username">Username</label>
+        <label for="email">Email</label>
         <input
-          type="text"
-          id="username"
-          formControlName="username"
+          type="email"
+          id="email"
+          formControlName="email"
           class="form-control"
-          placeholder="Enter username"
+          [class.is-invalid]="isFieldInvalid('email')"
+          placeholder="Enter your email"
+          autocomplete="email"
         />
+        <div class="error-message" *ngIf="isFieldInvalid('email')">
+          {{ getErrorMessage('email') }}
+        </div>
       </div>
+      
       <div class="form-group">
         <label for="password">Password</label>
         <input
@@ -19,16 +31,34 @@
           id="password"
           formControlName="password"
           class="form-control"
-          placeholder="Enter password"
+          [class.is-invalid]="isFieldInvalid('password')"
+          placeholder="Enter your password"
+          autocomplete="current-password"
         />
+        <div class="error-message" *ngIf="isFieldInvalid('password')">
+          {{ getErrorMessage('password') }}
+        </div>
       </div>
-      <div class="form-links">
-        <a routerLink="/forgot-password" class="forgot-password-link">Forgot Password?</a>
+      
+      <div class="form-links" style="cursor: pointer;">
+        <a (click)="forgotPassword()" class="forgot-password-link">Forgot Password?</a>
       </div>
 
-      <button type="submit" [disabled]="!loginForm.valid" class="btn-login">
-        Login
+      <button 
+        type="submit" 
+        [disabled]="!loginForm.valid || isLoading" 
+        class="btn-login"
+      >
+        <span *ngIf="!isLoading">Login</span>
+        <span *ngIf="isLoading">Logging in...</span>
       </button>
+
+      <!-- Demo Credentials Info -->
+      <div class="demo-info">
+        <p><strong>Demo Credentials:</strong></p>
+        <p>Email: john.doe&#64;example.com</p>
+        <p>Password: password123</p>
+      </div>
     </form>
   </div>
 </div>

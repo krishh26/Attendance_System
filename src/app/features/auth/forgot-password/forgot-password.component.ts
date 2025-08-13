@@ -35,7 +35,6 @@ export class ForgotPasswordComponent {
 
       const email = this.forgotPasswordForm.get('email')?.value;
 
-      // TODO: Replace with actual API call
       this.authService.forgotPassword(email).subscribe({
         next: () => {
           this.successMessage = 'Reset password link has been sent to your email.';
@@ -45,7 +44,7 @@ export class ForgotPasswordComponent {
         },
         error: (error) => {
           this.isSubmitted = false;
-          this.errorMessage = error.message || 'Something went wrong. Please try again.';
+          this.errorMessage = error?.error?.message || 'Something went wrong. Please try again.';
         }
       });
     }
