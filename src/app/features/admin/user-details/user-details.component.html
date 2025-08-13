@@ -1,94 +1,151 @@
 <div class="user-details-container">
-  <div class="header">
-    <button class="btn-back" (click)="goBack()">
-      <i class="fas fa-arrow-left"></i>
-      Back to Users
-    </button>
-    <div class="header-actions">
-      <button class="btn-edit">
-        <i class="fas fa-edit"></i>
-        Edit Profile
-      </button>
-    </div>
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading user details...</p>
   </div>
 
-  <div class="content-grid">
-    <!-- User Profile Card -->
-    <div class="profile-card">
-      <div class="profile-header">
-        <img [src]="user.profileImage" [alt]="user.name" class="profile-image">
-        <div class="profile-info">
-          <h2>{{ user.name }}</h2>
-          <p class="role">{{ user.role }} - {{ user.department }}</p>
-          <span class="status-badge" [class.active]="user.status === 'Active'">
-            {{ user.status }}
+  <!-- Error State -->
+  <div *ngIf="error" class="error-state">
+    <i class="fas fa-exclamation-triangle"></i>
+    <p>{{ error }}</p>
+    <button class="btn-retry" (click)="loadUserDetails()">Retry</button>
+  </div>
+
+  <!-- User Details Content -->
+  <div *ngIf="!loading && !error && user" class="content">
+    <div class="header">
+      <button class="btn-back" (click)="goBack()">
+        <i class="fas fa-arrow-left"></i>
+        Back to Users
+      </button>
+      <!-- <div class="header-actions">
+        <button class="btn-edit">
+          <i class="fas fa-edit"></i>
+          Edit Profile
+        </button>
+      </div> -->
+    </div>
+
+    <div class="content-grid">
+      <!-- User Profile Card -->
+      <div class="profile-card">
+        <div class="profile-header">
+          <img [src]="getProfileImage()" [alt]="getFullName()" class="profile-image">
+          <div class="profile-info">
+            <h2>{{ getFullName() }}</h2>
+            <p class="role" *ngIf="role">{{ role.displayName }}</p>
+            <p class="role" *ngIf="!role">{{ user.role || 'No Role' }}</p>
+            <span class="status-badge" [ngClass]="getStatusClass(user.isActive)">
+              {{ getStatusText(user.isActive) }}
+            </span>
+          </div>
+        </div>
+
+        <div class="profile-details">
+          <div class="detail-item">
+            <i class="fas fa-envelope"></i>
+            <div>
+              <label>Email</label>
+              <p>{{ user.email }}</p>
+            </div>
+          </div>
+          <div class="detail-item">
+            <i class="fas fa-phone"></i>
+            <div>
+              <label>Mobile Number</label>
+              <p>{{ user.mobilenumber }}</p>
+            </div>
+          </div>
+          <div class="detail-item">
+            <i class="fas fa-map-marker-alt"></i>
+            <div>
+              <label>Address</label>
+              <p>{{ user.addressline1 }}{{ user.addressline2 ? ', ' + user.addressline2 : '' }}</p>
+              <p class="address-details">{{ user.city }}, {{ user.state }} - {{ user.pincode }}</p>
+              <p class="address-details">Center: {{ user.center }}</p>
+            </div>
+          </div>
+          <div class="detail-item">
+            <i class="fas fa-calendar-alt"></i>
+            <div>
+              <label>Created Date</label>
+              <p>{{ formatDate(user.createdAt) }}</p>
+            </div>
+          </div>
+          <div class="detail-item">
+            <i class="fas fa-calendar-check"></i>
+            <div>
+              <label>Last Updated</label>
+              <p>{{ formatDate(user.updatedAt) }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Role Information Card -->
+      <div class="role-card" *ngIf="role">
+        <h3>Role Information</h3>
+        <div class="role-details">
+          <div class="detail-item">
+            <label>Role Name</label>
+            <p>{{ role.displayName }}</p>
+          </div>
+          <div class="detail-item">
+            <label>Description</label>
+            <p>{{ role.description }}</p>
+          </div>
+          <div class="detail-item">
+            <label>Permissions</label>
+            <p>{{ role.permissions.length > 0 ? role.permissions.join(', ') : 'No specific permissions' }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Information Card -->
+      <div class="system-card">
+        <h3>System Information</h3>
+        <div class="system-details">
+          <div class="detail-item">
+            <label>User ID</label>
+            <p class="user-id">{{ user._id }}</p>
+          </div>
+          <div class="detail-item">
+            <label>Status</label>
+            <p>{{ getStatusText(user.isActive) }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Original Skills Section - Commented out but kept for reference -->
+      <!--
+      <div class="skills-card">
+        <h3>Skills & Expertise</h3>
+        <div class="skills-list">
+          <span class="skill-tag" *ngFor="let skill of user.skills">
+            {{ skill }}
           </span>
         </div>
       </div>
+      -->
 
-      <div class="profile-details">
-        <div class="detail-item">
-          <i class="fas fa-envelope"></i>
-          <div>
-            <label>Email</label>
-            <p>{{ user.email }}</p>
-          </div>
-        </div>
-        <div class="detail-item">
-          <i class="fas fa-phone"></i>
-          <div>
-            <label>Phone</label>
-            <p>{{ user.phone }}</p>
-          </div>
-        </div>
-        <div class="detail-item">
-          <i class="fas fa-map-marker-alt"></i>
-          <div>
-            <label>Address</label>
-            <p>{{ user.address }}</p>
-          </div>
-        </div>
-        <div class="detail-item">
-          <i class="fas fa-phone-volume"></i>
-          <div>
-            <label>Emergency Contact</label>
-            <p>{{ user.emergencyContact }}</p>
-          </div>
-        </div>
-        <div class="detail-item">
-          <i class="fas fa-calendar-alt"></i>
-          <div>
-            <label>Join Date</label>
-            <p>{{ user.joinDate }}</p>
+      <!-- Original Recent Activity - Commented out but kept for reference -->
+      <!--
+      <div class="activity-card">
+        <h3>Recent Activity</h3>
+        <div class="activity-list">
+          <div class="activity-item" *ngFor="let activity of user.recentActivity">
+            <div class="activity-icon">
+              <i [class]="getActivityIcon(activity.type)"></i>
+            </div>
+            <div class="activity-content">
+              <p class="activity-description">{{ activity.description }}</p>
+              <span class="activity-date">{{ activity.date }}</span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Skills Section -->
-    <div class="skills-card">
-      <h3>Skills & Expertise</h3>
-      <div class="skills-list">
-        <span class="skill-tag" *ngFor="let skill of user.skills">
-          {{ skill }}
-        </span>
-      </div>
-    </div>
-
-    <!-- Recent Activity -->
-    <div class="activity-card">
-      <h3>Recent Activity</h3>
-      <div class="activity-list">
-        <div class="activity-item" *ngFor="let activity of user.recentActivity">
-          <div class="activity-icon">
-            <i [class]="getActivityIcon(activity.type)"></i>
-          </div>
-          <div class="activity-content">
-            <p class="activity-description">{{ activity.description }}</p>
-            <span class="activity-date">{{ activity.date }}</span>
-          </div>
-        </div>
-      </div>
+      -->
     </div>
   </div>
 </div>

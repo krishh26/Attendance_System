@@ -1,0 +1,131 @@
+<div class="modal-overlay" *ngIf="isOpen" (click)="onClose()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>User Details</h2>
+      <button class="btn-close" (click)="onClose()" type="button">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <!-- Error Message -->
+    <div *ngIf="error" class="error-message">
+      {{ error }}
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading user details...</p>
+    </div>
+
+    <!-- User Details -->
+    <div *ngIf="!loading && user" class="user-details">
+      <!-- Profile Header -->
+      <div class="profile-header">
+        <img [src]="getProfileImage()" [alt]="getFullName()" class="profile-avatar">
+        <div class="profile-info">
+          <h3>{{ getFullName() }}</h3>
+          <p class="user-email">{{ user.email }}</p>
+          <span class="status-badge" [ngClass]="getStatusClass(user.isActive)">
+            {{ getStatusText(user.isActive) }}
+          </span>
+        </div>
+      </div>
+
+      <!-- User Information -->
+      <div class="details-section">
+        <h4>Personal Information</h4>
+        <div class="details-grid">
+          <div class="detail-item">
+            <label>First Name</label>
+            <span>{{ user.firstname }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Last Name</label>
+            <span>{{ user.lastname }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Email</label>
+            <span>{{ user.email }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Mobile Number</label>
+            <span>{{ user.mobilenumber }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Role Information -->
+      <div class="details-section" *ngIf="role">
+        <h4>Role Information</h4>
+        <div class="details-grid">
+          <div class="detail-item">
+            <label>Role</label>
+            <span>{{ role.displayName }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Role Description</label>
+            <span>{{ role.description }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Address Information -->
+      <div class="details-section">
+        <h4>Address Information</h4>
+        <div class="details-grid">
+          <div class="detail-item full-width">
+            <label>Address Line 1</label>
+            <span>{{ user.addressline1 }}</span>
+          </div>
+          <div class="detail-item full-width" *ngIf="user.addressline2">
+            <label>Address Line 2</label>
+            <span>{{ user.addressline2 }}</span>
+          </div>
+          <div class="detail-item">
+            <label>City</label>
+            <span>{{ user.city }}</span>
+          </div>
+          <div class="detail-item">
+            <label>State</label>
+            <span>{{ user.state }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Center</label>
+            <span>{{ user.center }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Pincode</label>
+            <span>{{ user.pincode }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Information -->
+      <div class="details-section">
+        <h4>System Information</h4>
+        <div class="details-grid">
+          <div class="detail-item">
+            <label>User ID</label>
+            <span class="user-id">{{ user._id }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Created Date</label>
+            <span>{{ formatDate(user.createdAt) }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Last Updated</label>
+            <span>{{ formatDate(user.updatedAt) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Actions -->
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" (click)="onClose()">
+        Close
+      </button>
+    </div>
+  </div>
+</div>

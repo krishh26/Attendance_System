@@ -1,0 +1,29 @@
+<div class="modal-overlay" *ngIf="isOpen" (click)="onCancel()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>{{ title }}</h3>
+    </div>
+
+    <div class="modal-body">
+      <p>{{ message }}</p>
+    </div>
+
+    <div class="modal-actions">
+      <button
+        type="button"
+        class="btn-secondary"
+        (click)="onCancel()"
+        [disabled]="loading">
+        {{ cancelText }}
+      </button>
+      <button
+        type="button"
+        [class]="confirmButtonClass"
+        (click)="onConfirm()"
+        [disabled]="loading">
+        <span *ngIf="loading" class="spinner"></span>
+        {{ confirmText }}
+      </button>
+    </div>
+  </div>
+</div>

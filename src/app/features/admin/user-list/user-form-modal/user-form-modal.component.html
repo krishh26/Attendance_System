@@ -1,0 +1,192 @@
+<div class="modal-overlay" *ngIf="isOpen" (click)="onClose()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ isEditMode ? 'Edit User' : 'Add New User' }}</h2>
+      <button class="btn-close" (click)="onClose()" type="button">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <!-- Error Message -->
+    <div *ngIf="error" class="error-message">
+      {{ error }}
+    </div>
+
+    <form [formGroup]="userForm" (ngSubmit)="onSubmit()" class="user-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="firstname">First Name *</label>
+          <input
+            id="firstname"
+            type="text"
+            formControlName="firstname"
+            [class.invalid]="isFieldInvalid('firstname')"
+            placeholder="Enter first name">
+          <div class="error-text" *ngIf="isFieldInvalid('firstname')">
+            {{ getFieldError('firstname') }}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="lastname">Last Name *</label>
+          <input
+            id="lastname"
+            type="text"
+            formControlName="lastname"
+            [class.invalid]="isFieldInvalid('lastname')"
+            placeholder="Enter last name">
+          <div class="error-text" *ngIf="isFieldInvalid('lastname')">
+            {{ getFieldError('lastname') }}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="email">Email *</label>
+          <input
+            id="email"
+            type="email"
+            formControlName="email"
+            [class.invalid]="isFieldInvalid('email')"
+            placeholder="Enter email address">
+          <div class="error-text" *ngIf="isFieldInvalid('email')">
+            {{ getFieldError('email') }}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">{{ isEditMode ? 'Password (leave blank to keep unchanged)' : 'Password *' }}</label>
+          <input
+            id="password"
+            type="password"
+            formControlName="password"
+            [class.invalid]="isFieldInvalid('password')"
+            [placeholder]="isEditMode ? 'Leave blank to keep unchanged' : 'Enter password'">
+          <div class="error-text" *ngIf="isFieldInvalid('password')">
+            {{ getFieldError('password') }}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="role">Role *</label>
+          <select
+            id="role"
+            formControlName="role"
+            [class.invalid]="isFieldInvalid('role')">
+            <option value="">Select a role</option>
+            <option *ngFor="let role of roles" [value]="role._id">
+              {{ role.displayName }}
+            </option>
+          </select>
+          <div class="error-text" *ngIf="isFieldInvalid('role')">
+            {{ getFieldError('role') }}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="mobilenumber">Mobile Number *</label>
+          <input
+            id="mobilenumber"
+            type="tel"
+            formControlName="mobilenumber"
+            [class.invalid]="isFieldInvalid('mobilenumber')"
+            placeholder="Enter mobile number">
+          <div class="error-text" *ngIf="isFieldInvalid('mobilenumber')">
+            {{ getFieldError('mobilenumber') }}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="addressline1">Address Line 1 *</label>
+        <input
+          id="addressline1"
+          type="text"
+          formControlName="addressline1"
+          [class.invalid]="isFieldInvalid('addressline1')"
+          placeholder="Enter address line 1">
+        <div class="error-text" *ngIf="isFieldInvalid('addressline1')">
+          {{ getFieldError('addressline1') }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="addressline2">Address Line 2</label>
+        <input
+          id="addressline2"
+          type="text"
+          formControlName="addressline2"
+          placeholder="Enter address line 2 (optional)">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="city">City *</label>
+          <input
+            id="city"
+            type="text"
+            formControlName="city"
+            [class.invalid]="isFieldInvalid('city')"
+            placeholder="Enter city">
+          <div class="error-text" *ngIf="isFieldInvalid('city')">
+            {{ getFieldError('city') }}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="state">State *</label>
+          <input
+            id="state"
+            type="text"
+            formControlName="state"
+            [class.invalid]="isFieldInvalid('state')"
+            placeholder="Enter state">
+          <div class="error-text" *ngIf="isFieldInvalid('state')">
+            {{ getFieldError('state') }}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="center">Center *</label>
+          <input
+            id="center"
+            type="text"
+            formControlName="center"
+            [class.invalid]="isFieldInvalid('center')"
+            placeholder="Enter center">
+          <div class="error-text" *ngIf="isFieldInvalid('center')">
+            {{ getFieldError('center') }}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="pincode">Pincode *</label>
+          <input
+            id="pincode"
+            type="text"
+            formControlName="pincode"
+            [class.invalid]="isFieldInvalid('pincode')"
+            placeholder="Enter pincode">
+          <div class="error-text" *ngIf="isFieldInvalid('pincode')">
+            {{ getFieldError('pincode') }}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" (click)="onClose()" [disabled]="loading">
+          Cancel
+        </button>
+        <button type="submit" class="btn-primary" [disabled]="loading || userForm.invalid">
+          <span *ngIf="loading" class="spinner"></span>
+          {{ isEditMode ? 'Update User' : 'Create User' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

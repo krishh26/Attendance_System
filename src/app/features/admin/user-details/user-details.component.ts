@@ -1,7 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { Subject, takeUntil } from 'rxjs';
+import { UserService, User } from '../user-list/user.service';
+import { RoleService, Role } from '../user-list/role.service';
 
+// Original interface - commented out but kept for reference
+/*
 interface UserDetail {
   id: number;
   name: string;
@@ -21,6 +26,7 @@ interface UserDetail {
     description: string;
   }[];
 }
+*/
 
 @Component({
   selector: 'app-user-details',
@@ -29,8 +35,15 @@ interface UserDetail {
   standalone: true,
   imports: [CommonModule, RouterModule]
 })
-export class UserDetailsComponent implements OnInit {
-  userId!: number;
+export class UserDetailsComponent implements OnInit, OnDestroy {
+  userId!: string;
+  user: User | null = null;
+  role: Role | null = null;
+  loading = false;
+  error: string | null = null;
+
+  // Original mock data - commented out but kept for reference
+  /*
   user: UserDetail = {
     id: 1,
     name: 'John Doe',
@@ -62,19 +75,96 @@ export class UserDetailsComponent implements OnInit {
       }
     ]
   };
+  */
+
+  private destroy$ = new Subject<void>();
 
   constructor(
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private userService: UserService,
+    private roleService: RoleService
   ) {}
 
   ngOnInit() {
-    this.userId = Number(this.route.snapshot.paramMap.get('id'));
-    // In a real app, you would fetch user details using the ID
+    this.userId = this.route.snapshot.paramMap.get('id') || '';
+    if (this.userId) {
+      this.loadUserDetails();
+    }
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  loadUserDetails() {
+    this.loading = true;
+    this.error = null;
+
+    this.userService.getUserById(this.userId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          this.user = response.data;
+          this.loading = false;
+
+          // Load role details if user has a role
+          if (this.user?.role) {
+            this.loadRoleDetails(this.user.role);
+          }
+        },
+        error: (error) => {
+          this.error = 'Failed to load user details. Please try again.';
+          this.loading = false;
+          console.error('Error loading user details:', error);
+        }
+      });
+  }
+
+  loadRoleDetails(roleId: string) {
+    this.roleService.getRoles({ limit: 100 })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          this.role = response.data.find(role => role._id === roleId) || null;
+        },
+        error: (error) => {
+          console.error('Error loading role details:', error);
+        }
+      });
   }
 
   goBack() {
     this.router.navigate(['/admin/user-list']);
+  }
+
+  getFullName(): string {
+    if (!this.user) return '';
+    return `${this.user.firstname} ${this.user.lastname}`.trim();
+  }
+
+  getProfileImage(): string {
+    const name = this.getFullName();
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}`;
+  }
+
+  getStatusText(isActive: boolean): string {
+    return isActive ? 'Active' : 'Inactive';
+  }
+
+  getStatusClass(isActive: boolean): string {
+    return isActive ? 'status-active' : 'status-inactive';
+  }
+
+  formatDate(dateString: string): string {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   }
 
   getActivityIcon(type: string): string {

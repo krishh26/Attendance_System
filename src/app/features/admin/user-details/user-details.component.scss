@@ -4,6 +4,74 @@
   min-height: calc(100vh - 60px);
 }
 
+// Loading State
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+  }
+
+  p {
+    color: #6c757d;
+    margin: 0;
+    font-size: 1rem;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+// Error State
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+
+  i {
+    font-size: 3rem;
+    color: #dc3545;
+    margin-bottom: 16px;
+  }
+
+  p {
+    color: #721c24;
+    margin: 0 0 20px 0;
+    font-size: 1.1rem;
+  }
+
+  .btn-retry {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-size: 0.9rem;
+
+    &:hover {
+      background-color: #c82333;
+    }
+  }
+}
+
 .header {
   display: flex;
   justify-content: space-between;
@@ -219,5 +287,72 @@
 
   .profile-details {
     grid-template-columns: 1fr;
+  }
+}
+
+// New card styles
+.role-card, .system-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  padding: 24px;
+
+  h3 {
+    margin: 0 0 16px;
+    font-size: 1.1rem;
+    color: #333;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 8px;
+  }
+
+  .role-details, .system-details {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    .detail-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+
+      label {
+        font-size: 0.8rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 500;
+      }
+
+      p {
+        margin: 0;
+        color: #333;
+        font-size: 0.95rem;
+
+        &.user-id {
+          font-family: 'Courier New', monospace;
+          font-size: 0.8rem;
+          color: #6c757d;
+          background-color: #f8f9fa;
+          padding: 4px 8px;
+          border-radius: 4px;
+          word-break: break-all;
+        }
+      }
+    }
+  }
+}
+
+// Update profile-details to include address-details styling
+.profile-details {
+  .detail-item {
+    div {
+      p {
+        &.address-details {
+          font-size: 0.85rem;
+          color: #6c757d;
+          margin-top: 4px;
+        }
+      }
+    }
   }
 }
