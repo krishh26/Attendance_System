@@ -1,27 +1,108 @@
 <div class="leave-list-container">
+  <!-- Header -->
   <div class="header">
     <h1>Leave Requests</h1>
-    <button class="btn-add">
-      <i class="fas fa-plus"></i>
-      New Leave Request
-    </button>
+    <div class="header-actions">
+      <button class="btn-refresh" (click)="refreshData()" [disabled]="loading">
+        <i class="fas fa-sync-alt" [class.fa-spin]="loading"></i>
+        Refresh
+      </button>
+      <!-- <button class="btn-add">
+        <i class="fas fa-plus"></i>
+        New Leave Request
+      </button> -->
+    </div>
   </div>
 
+  <!-- Filters -->
   <div class="filters">
     <div class="search-box">
       <i class="fas fa-search"></i>
-      <input type="text" placeholder="Search leave requests...">
+      <input 
+        type="text" 
+        placeholder="Search leave requests..." 
+        [(ngModel)]="searchTerm"
+        (input)="onSearchChange()">
     </div>
 
-    <div class="filter-buttons">
-      <button class="btn-filter active">All</button>
-      <button class="btn-filter">Pending</button>
-      <button class="btn-filter">Approved</button>
-      <button class="btn-filter">Rejected</button>
+    <div class="filter-controls">
+      <div class="filter-group">
+        <label>Status:</label>
+        <select [(ngModel)]="statusFilter" (change)="onStatusFilterChange()">
+          <option value="all">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Leave Type:</label>
+        <select [(ngModel)]="leaveTypeFilter" (change)="onLeaveTypeFilterChange()">
+          <option value="all">All Types</option>
+          <option value="annual">Annual Leave</option>
+          <option value="casual">Casual Leave</option>
+          <option value="sick">Sick Leave</option>
+          <option value="full-day">Full Day</option>
+          <option value="half-day">Half Day</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Half Day:</label>
+        <select [(ngModel)]="halfDayFilter" (change)="onHalfDayFilterChange()">
+          <option value="all">All</option>
+          <option value="true">Half Day</option>
+          <option value="false">Full Day</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Start Date:</label>
+        <input 
+          type="date" 
+          [(ngModel)]="startDateFilter"
+          (change)="onDateFilterChange()">
+      </div>
+
+      <div class="filter-group">
+        <label>End Date:</label>
+        <input 
+          type="date" 
+          [(ngModel)]="endDateFilter"
+          (change)="onDateFilterChange()">
+      </div>
+
+      <button class="btn-clear-filters" (click)="clearFilters()">
+        <i class="fas fa-times"></i>
+        Clear Filters
+      </button>
     </div>
   </div>
 
-  <div class="leave-table">
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading leave requests...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-state">
+    <i class="fas fa-exclamation-triangle"></i>
+    <p>{{ error }}</p>
+    <button class="btn-retry" (click)="loadLeaveRequests()">Retry</button>
+  </div>
+
+  <!-- Leave Table -->
+  <div *ngIf="!loading && !error" class="leave-table">
+    <div class="table-header">
+      <p class="results-info">
+        Showing {{ (currentPage - 1) * pageSize + 1 }} - {{ getEndItemNumber() }} of {{ totalItems }} results
+      </p>
+    </div>
+
     <table>
       <thead>
         <tr>
@@ -29,48 +110,118 @@
           <th>Leave Type</th>
           <th>Start Date</th>
           <th>End Date</th>
+          <th>Total Days</th>
           <th>Status</th>
           <th>Reason</th>
+          <th>Created</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let leave of leaveRequests">
-          <td>{{ leave.employeeName }}</td>
-          <td>{{ leave.leaveType }}</td>
-          <td>{{ leave.startDate }}</td>
-          <td>{{ leave.endDate }}</td>
           <td>
-            <span class="status-badge" [ngClass]="getStatusClass(leave.status)">
-              {{ leave.status }}
+            <div class="employee-info">
+              <div class="employee-avatar">
+                <img [src]="'https://ui-avatars.com/api/?name=' + getEmployeeName(leave)" [alt]="getEmployeeName(leave)">
+              </div>
+              <span>{{ getEmployeeName(leave) }}</span>
+            </div>
+          </td>
+          <td>
+            <span class="leave-type-badge" [ngClass]="'type-' + leave.leaveType">
+              {{ getLeaveTypeText(leave.leaveType) }}
+            </span>
+            <span *ngIf="leave.isHalfDay" class="half-day-indicator">
+              ({{ leave.halfDayType || 'Half Day' }})
             </span>
           </td>
-          <td>{{ leave.reason }}</td>
+          <td>{{ formatDate(leave.startDate) }}</td>
+          <td>{{ formatDate(leave.endDate) }}</td>
+          <td>{{ leave.totalDays }} day(s)</td>
+          <td>
+            <span class="status-badge" [ngClass]="getStatusClass(leave.status)">
+              {{ getStatusText(leave.status) }}
+            </span>
+          </td>
+          <td class="reason-cell">
+            <span class="reason-text" [title]="leave.reason">{{ leave.reason }}</span>
+          </td>
+          <td>{{ formatDateTime(leave.createdAt) }}</td>
           <td class="actions">
-            <button class="btn-icon" title="View Details">
+            <!-- <button class="btn-icon" title="View Details">
               <i class="fas fa-eye"></i>
-            </button>
-            <button class="btn-icon" title="Edit" *ngIf="leave.status === 'Pending'">
+            </button> -->
+            <button 
+              class="btn-icon" 
+              title="Edit" 
+              *ngIf="canEdit(leave)"
+              [disabled]="!canEdit(leave)">
               <i class="fas fa-edit"></i>
             </button>
-            <button class="btn-icon delete" title="Delete" *ngIf="leave.status === 'Pending'">
+            <button 
+              class="btn-icon delete" 
+              title="Delete" 
+              *ngIf="canEdit(leave)"
+              [disabled]="!canEdit(leave)">
               <i class="fas fa-trash"></i>
             </button>
+            <button 
+              class="btn-icon status" 
+              title="Update Status" 
+              (click)="openStatusModal(leave)">
+              <i class="fas fa-cog"></i>
+            </button>
+            <div *ngIf="canApproveReject(leave)" class="approval-actions">
+              <button class="btn-icon approve" title="Approve">
+                <i class="fas fa-check"></i>
+              </button>
+              <button class="btn-icon reject" title="Reject">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
           </td>
         </tr>
       </tbody>
     </table>
+
+    <!-- Empty State -->
+    <div *ngIf="leaveRequests.length === 0 && !loading" class="empty-state">
+      <i class="fas fa-inbox"></i>
+      <p>No leave requests found</p>
+      <span>Try adjusting your filters or create a new leave request</span>
+    </div>
   </div>
 
-  <div class="pagination">
-    <button class="btn-page" disabled>
+  <!-- Pagination -->
+  <div *ngIf="totalPages > 1 && !loading" class="pagination">
+    <button 
+      class="btn-page" 
+      [disabled]="currentPage === 1"
+      (click)="onPageChange(currentPage - 1)">
       <i class="fas fa-chevron-left"></i>
     </button>
-    <button class="btn-page active">1</button>
-    <button class="btn-page">2</button>
-    <button class="btn-page">3</button>
-    <button class="btn-page">
+    
+    <button 
+      *ngFor="let page of pages" 
+      class="btn-page" 
+      [class.active]="page === currentPage"
+      (click)="onPageChange(page)">
+      {{ page }}
+    </button>
+    
+    <button 
+      class="btn-page" 
+      [disabled]="currentPage === totalPages"
+      (click)="onPageChange(currentPage + 1)">
       <i class="fas fa-chevron-right"></i>
     </button>
   </div>
+
+  <!-- Status Update Modal -->
+  <app-status-update-modal
+    [isOpen]="showStatusModal"
+    [leaveRequest]="selectedLeaveRequest"
+    (closeModal)="closeStatusModal()"
+    (statusUpdated)="onStatusUpdated($event)">
+  </app-status-update-modal>
 </div>

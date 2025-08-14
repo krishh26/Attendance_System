@@ -1,0 +1,109 @@
+<div class="modal-overlay" *ngIf="isOpen" (click)="onClose()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Update Leave Request Status</h2>
+      <button class="btn-close" (click)="onClose()" type="button">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <!-- Error Message -->
+    <div *ngIf="error" class="error-message">
+      {{ error }}
+    </div>
+
+    <!-- Leave Request Info -->
+    <div *ngIf="leaveRequest" class="leave-info">
+      <div class="info-header">
+        <h4>Leave Request Details</h4>
+      </div>
+      <div class="info-grid">
+        <div class="info-item">
+          <label>Employee:</label>
+          <span>{{ leaveRequest.userId || 'Unknown Employee' }}</span>
+        </div>
+        <div class="info-item">
+          <label>Leave Type:</label>
+          <span class="leave-type-badge" [ngClass]="'type-' + leaveRequest.leaveType">
+            {{ leaveRequest.leaveType === 'full-day' ? 'Full Day' : 
+               leaveRequest.leaveType === 'half-day' ? 'Half Day' : 
+               leaveRequest.leaveType === 'sick' ? 'Sick Leave' : 
+               leaveRequest.leaveType === 'casual' ? 'Casual Leave' : 
+               leaveRequest.leaveType === 'annual' ? 'Annual Leave' : 'Other' }}
+          </span>
+        </div>
+        <div class="info-item">
+          <label>Start Date:</label>
+          <span>{{ formatDate(leaveRequest.startDate) }}</span>
+        </div>
+        <div class="info-item">
+          <label>End Date:</label>
+          <span>{{ formatDate(leaveRequest.endDate) }}</span>
+        </div>
+        <div class="info-item">
+          <label>Total Days:</label>
+          <span>{{ leaveRequest.totalDays }} day(s)</span>
+        </div>
+        <div class="info-item">
+          <label>Current Status:</label>
+          <span class="status-badge" [ngClass]="getStatusClass(leaveRequest.status)">
+            {{ getStatusText(leaveRequest.status) }}
+          </span>
+        </div>
+        <div class="info-item">
+          <label>Reason:</label>
+          <span class="reason-text">{{ leaveRequest.reason }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Update Form -->
+    <form (ngSubmit)="onSubmit()" class="status-form">
+      <div class="form-group">
+        <label for="status">New Status *</label>
+        <select 
+          id="status" 
+          [(ngModel)]="selectedStatus" 
+          name="status"
+          (change)="onStatusChange()"
+          required>
+          <option *ngFor="let option of statusOptions" 
+                  [value]="option.value" 
+                  [ngClass]="option.class">
+            {{ option.label }}
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="notes">Notes (Optional)</label>
+        <textarea 
+          id="notes" 
+          [(ngModel)]="notes" 
+          name="notes"
+          placeholder="Add any additional notes or comments..."
+          rows="3"></textarea>
+      </div>
+
+      <div class="form-group" *ngIf="selectedStatus === 'rejected'">
+        <label for="rejectionReason">Rejection Reason (Optional)</label>
+        <textarea 
+          id="rejectionReason" 
+          [(ngModel)]="rejectionReason" 
+          name="rejectionReason"
+          placeholder="Provide a reason for rejection..."
+          rows="3"></textarea>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" (click)="onClose()" [disabled]="loading">
+          Cancel
+        </button>
+        <button type="submit" class="btn-primary" [disabled]="loading">
+          <span *ngIf="loading" class="spinner"></span>
+          Update Status
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

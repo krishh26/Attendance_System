@@ -52,56 +52,104 @@
       </button>
     </div>
 
+    <!-- Error Message -->
+    <div *ngIf="error" class="error-message">
+      <i class="fas fa-exclamation-triangle"></i>
+      {{ error }}
+    </div>
+
     <!-- Filters -->
     <div class="filters">
       <div class="search-box">
         <i class="fas fa-search"></i>
-        <input type="text" placeholder="Search employee...">
+        <input 
+          type="text" 
+          placeholder="Search employee..." 
+          [(ngModel)]="searchTerm"
+          (input)="onSearchChange()">
       </div>
 
       <div class="date-filter">
-        <input type="date" class="form-control">
+        <label for="dateFilter">Date:</label>
+        <input 
+          type="date" 
+          id="dateFilter"
+          class="form-control" 
+          [(ngModel)]="selectedDate"
+          (change)="onDateChange()">
       </div>
 
       <div class="filter-buttons">
-        <button class="btn-filter active">All</button>
-        <button class="btn-filter">Present</button>
-        <button class="btn-filter">Late</button>
-        <button class="btn-filter">Early Leave</button>
-        <button class="btn-filter">Absent</button>
+        <button 
+          class="btn-filter" 
+          [class.active]="selectedStatus === 'all'"
+          (click)="selectedStatus = 'all'; onStatusChange()">
+          All
+        </button>
+        <button 
+          class="btn-filter" 
+          [class.active]="selectedStatus === 'present'"
+          (click)="selectedStatus = 'present'; onStatusChange()">
+          Present
+        </button>
+        <button 
+          class="btn-filter" 
+          [class.active]="selectedStatus === 'late'"
+          (click)="selectedStatus = 'late'; onStatusChange()">
+          Late
+        </button>
+        <button 
+          class="btn-filter" 
+          [class.active]="selectedStatus === 'absent'"
+          (click)="selectedStatus = 'absent'; onStatusChange()">
+          Absent
+        </button>
       </div>
     </div>
 
+    <!-- Loading State -->
+    <div *ngIf="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading time logs...</p>
+    </div>
+
     <!-- Time Entries Table -->
-    <div class="timelog-table">
+    <div *ngIf="!loading" class="timelog-table">
       <table>
         <thead>
           <tr>
-            <th>Employee</th>
+            <th>Employee ID</th>
             <th>Date</th>
-            <th>Time In</th>
-            <th>Time Out</th>
+            <th>Check In Time</th>
+            <th>Check Out Time</th>
             <th>Total Hours</th>
             <th>Status</th>
-            <th>Notes</th>
-            <th>Actions</th>
+            <!-- <th>Session</th> -->
+            <!-- <th>Actions</th> -->
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let entry of timeEntries">
-            <td>{{ entry.employeeName }}</td>
-            <td>{{ entry.date }}</td>
-            <td>{{ entry.timeIn }}</td>
-            <td>{{ entry.timeOut }}</td>
-            <td>{{ entry.totalHours }}</td>
+          <tr *ngFor="let entry of filteredTimeEntries">
+            <td>{{ getEmployeeName(entry) }}</td>
+            <td>{{ formatDate(entry.date) }}</td>
+            <td>{{ formatTime(entry.checkInTime) }}</td>
+            <td>
+              <span *ngIf="isCheckedOut(entry); else notCheckedOut">
+                {{ formatTime(entry.updatedAt) }}
+              </span>
+              <ng-template #notCheckedOut>
+                <span class="not-checked-out">Not checked out</span>
+              </ng-template>
+            </td>
+            <td>{{ getTotalHours(entry) }}</td>
             <td>
               <span class="status-badge" [ngClass]="getStatusClass(entry.status)">
-                {{ entry.status }}
+                {{ getStatusText(entry.status) }}
               </span>
             </td>
-            <td>{{ entry.notes }}</td>
-            <td class="actions">
-              <button class="btn-icon" title="Edit">
+            <!-- <td>{{ entry.sessionNumber }}</td> -->
+            <!-- <td class="actions">
+              <button class="btn-icon" title="Edit" [disabled]="!isCheckedOut(entry)">
                 <i class="fas fa-edit"></i>
               </button>
               <button class="btn-icon" title="View Details">
@@ -110,23 +158,47 @@
               <button class="btn-icon delete" title="Delete">
                 <i class="fas fa-trash"></i>
               </button>
-            </td>
+            </td> -->
           </tr>
         </tbody>
       </table>
     </div>
 
+    <!-- Empty State -->
+    <div *ngIf="!loading && filteredTimeEntries.length === 0" class="empty-state">
+      <i class="fas fa-inbox"></i>
+      <p>No time logs found</p>
+      <span>Try adjusting your filters or select a different date</span>
+    </div>
+
     <!-- Pagination -->
-    <div class="pagination">
-      <button class="btn-page" disabled>
+    <div *ngIf="totalPages > 1 && !loading" class="pagination">
+      <button 
+        class="btn-page" 
+        [disabled]="currentPage === 1"
+        (click)="onPageChange(currentPage - 1)">
         <i class="fas fa-chevron-left"></i>
       </button>
-      <button class="btn-page active">1</button>
-      <button class="btn-page">2</button>
-      <button class="btn-page">3</button>
-      <button class="btn-page">
+
+      <button 
+        *ngFor="let page of pages"
+        class="btn-page" 
+        [class.active]="page === currentPage"
+        (click)="onPageChange(page)">
+        {{ page }}
+      </button>
+
+      <button 
+        class="btn-page" 
+        [disabled]="currentPage === totalPages"
+        (click)="onPageChange(currentPage + 1)">
         <i class="fas fa-chevron-right"></i>
       </button>
+    </div>
+
+    <!-- Pagination Info -->
+    <div *ngIf="totalItems > 0" class="pagination-info">
+      Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to {{ Math.min(currentPage * itemsPerPage, totalItems) }} of {{ totalItems }} entries
     </div>
   </div>
 </div>

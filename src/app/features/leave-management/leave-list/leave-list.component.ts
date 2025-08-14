@@ -1,62 +1,292 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
-interface LeaveRequest {
-  id: number;
-  employeeName: string;
-  leaveType: string;
-  startDate: string;
-  endDate: string;
-  status: 'Pending' | 'Approved' | 'Rejected';
-  reason: string;
-}
+import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
+import { LeaveService, LeaveRequest, LeaveListParams } from '../services/leave.service';
+import { StatusUpdateModalComponent } from './status-update-modal/status-update-modal.component';
 
 @Component({
   selector: 'app-leave-list',
   templateUrl: './leave-list.component.html',
   styleUrls: ['./leave-list.component.scss'],
   standalone: true,
-  imports: [CommonModule]
+  imports: [CommonModule, FormsModule, StatusUpdateModalComponent]
 })
-export class LeaveListComponent {
-  leaveRequests: LeaveRequest[] = [
-    {
-      id: 1,
-      employeeName: 'John Doe',
-      leaveType: 'Annual Leave',
-      startDate: '2024-03-15',
-      endDate: '2024-03-18',
-      status: 'Pending',
-      reason: 'Family vacation'
-    },
-    {
-      id: 2,
-      employeeName: 'Jane Smith',
-      leaveType: 'Sick Leave',
-      startDate: '2024-03-10',
-      endDate: '2024-03-11',
-      status: 'Approved',
-      reason: 'Medical appointment'
-    },
-    {
-      id: 3,
-      employeeName: 'Mike Johnson',
-      leaveType: 'Personal Leave',
-      startDate: '2024-03-20',
-      endDate: '2024-03-20',
-      status: 'Rejected',
-      reason: 'Personal errands'
-    }
-  ];
+export class LeaveListComponent implements OnInit, OnDestroy {
+  // Data
+  leaveRequests: LeaveRequest[] = [];
+  loading = false;
+  error: string | null = null;
 
+  // Pagination
+  currentPage = 1;
+  pageSize = 10;
+  totalItems = 0;
+  totalPages = 0;
+
+  // Filters
+  searchTerm = '';
+  statusFilter: 'all' | 'pending' | 'approved' | 'rejected' | 'cancelled' = 'all';
+  leaveTypeFilter: 'all' | 'full-day' | 'half-day' | 'sick' | 'casual' | 'annual' | 'other' = 'all';
+  startDateFilter = '';
+  endDateFilter = '';
+  halfDayFilter: 'all' | 'true' | 'false' = 'all';
+
+  // Modal states
+  showStatusModal = false;
+  selectedLeaveRequest: LeaveRequest | null = null;
+  statusUpdateLoading = false;
+
+  // Search debouncing
+  private searchSubject = new Subject<string>();
+  private destroy$ = new Subject<void>();
+
+  constructor(private leaveService: LeaveService) {
+    // Setup search debouncing
+    this.searchSubject
+      .pipe(
+        takeUntil(this.destroy$),
+        debounceTime(500),
+        distinctUntilChanged()
+      )
+      .subscribe(() => {
+        this.currentPage = 1;
+        this.loadLeaveRequests();
+      });
+  }
+
+  ngOnInit(): void {
+    this.loadLeaveRequests();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  // Load leave requests from API
+  loadLeaveRequests(): void {
+    this.loading = true;
+    this.error = null;
+
+    const params: LeaveListParams = {
+      page: this.currentPage,
+      limit: this.pageSize
+    };
+
+    // Add filters
+    if (this.statusFilter !== 'all') {
+      params.status = this.statusFilter;
+    }
+    if (this.leaveTypeFilter !== 'all') {
+      params.leaveType = this.leaveTypeFilter;
+    }
+    if (this.startDateFilter) {
+      params.startDate = this.startDateFilter;
+    }
+    if (this.endDateFilter) {
+      params.endDate = this.endDateFilter;
+    }
+    if (this.halfDayFilter !== 'all') {
+      params.isHalfDay = this.halfDayFilter === 'true';
+    }
+
+    this.leaveService.getLeaveRequests(params)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          this.leaveRequests = response.data.data;
+          this.totalItems = response.pagination.total;
+          this.totalPages = response.pagination.totalPages;
+          this.currentPage = response.pagination.page;
+          this.loading = false;
+        },
+        error: (error) => {
+          this.error = 'Failed to load leave requests. Please try again.';
+          this.loading = false;
+          console.error('Error loading leave requests:', error);
+        }
+      });
+  }
+
+  // Search handling
+  onSearchChange(): void {
+    this.searchSubject.next(this.searchTerm);
+  }
+
+  // Filter handling
+  onStatusFilterChange(): void {
+    this.currentPage = 1;
+    this.loadLeaveRequests();
+  }
+
+  onLeaveTypeFilterChange(): void {
+    this.currentPage = 1;
+    this.loadLeaveRequests();
+  }
+
+  onDateFilterChange(): void {
+    this.currentPage = 1;
+    this.loadLeaveRequests();
+  }
+
+  onHalfDayFilterChange(): void {
+    this.currentPage = 1;
+    this.loadLeaveRequests();
+  }
+
+  // Pagination
+  onPageChange(page: number): void {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+      this.loadLeaveRequests();
+    }
+  }
+
+  // Get pages array for pagination display
+  get pages(): number[] {
+    const pages: number[] = [];
+    const maxVisiblePages = 5;
+    
+    if (this.totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= this.totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      let startPage = Math.max(1, this.currentPage - Math.floor(maxVisiblePages / 2));
+      let endPage = Math.min(this.totalPages, startPage + maxVisiblePages - 1);
+      
+      if (endPage - startPage + 1 < maxVisiblePages) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+      }
+      
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+      }
+    }
+    
+    return pages;
+  }
+
+  // Refresh data
+  refreshData(): void {
+    this.loadLeaveRequests();
+  }
+
+  // Clear filters
+  clearFilters(): void {
+    this.searchTerm = '';
+    this.statusFilter = 'all';
+    this.leaveTypeFilter = 'all';
+    this.startDateFilter = '';
+    this.endDateFilter = '';
+    this.halfDayFilter = 'all';
+    this.currentPage = 1;
+    this.loadLeaveRequests();
+  }
+
+  // Utility methods
   getStatusClass(status: string): string {
     switch (status) {
-      case 'Approved':
+      case 'approved':
         return 'status-approved';
-      case 'Rejected':
+      case 'rejected':
         return 'status-rejected';
+      case 'cancelled':
+        return 'status-cancelled';
       default:
         return 'status-pending';
     }
+  }
+
+  getStatusText(status: string): string {
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  }
+
+  getLeaveTypeText(leaveType: string): string {
+    const typeMap: { [key: string]: string } = {
+      'full-day': 'Full Day',
+      'half-day': 'Half Day',
+      'sick': 'Sick Leave',
+      'casual': 'Casual Leave',
+      'annual': 'Annual Leave',
+      'other': 'Other'
+    };
+    return typeMap[leaveType] || leaveType;
+  }
+
+  formatDate(dateString: string): string {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  }
+
+  formatDateTime(dateString: string): string {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  // Check if user can edit/delete (only pending requests)
+  canEdit(leaveRequest: LeaveRequest): boolean {
+    return leaveRequest.status === 'pending';
+  }
+
+  // Check if user can approve/reject (only pending requests)
+  canApproveReject(leaveRequest: LeaveRequest): boolean {
+    return leaveRequest.status === 'pending';
+  }
+
+  // Get employee name (placeholder - you might need to fetch user details)
+  getEmployeeName(leaveRequest: LeaveRequest): string {
+    // This is a placeholder - you might need to fetch user details from another API
+    // or include user information in the leave request response
+    return leaveRequest.userId || 'Unknown Employee';
+  }
+
+  // Get end item number for pagination display
+  getEndItemNumber(): number {
+    return Math.min(this.currentPage * this.pageSize, this.totalItems);
+  }
+
+  // Status update handling
+  openStatusModal(leaveRequest: LeaveRequest): void {
+    this.selectedLeaveRequest = leaveRequest;
+    this.showStatusModal = true;
+  }
+
+  closeStatusModal(): void {
+    this.showStatusModal = false;
+    this.selectedLeaveRequest = null;
+  }
+
+  onStatusUpdated(data: { leaveId: string; statusData: any }): void {
+    this.statusUpdateLoading = true;
+    
+    this.leaveService.updateLeaveRequestStatus(data.leaveId, data.statusData)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          this.statusUpdateLoading = false;
+          this.closeStatusModal();
+          this.loadLeaveRequests(); // Refresh the list
+          
+          // Show success message (you can implement a toast/notification system)
+          console.log('Status updated successfully:', response);
+        },
+        error: (error) => {
+          this.statusUpdateLoading = false;
+          console.error('Error updating status:', error);
+          
+          // Show error message
+          this.error = 'Failed to update leave request status. Please try again.';
+        }
+      });
   }
 }
