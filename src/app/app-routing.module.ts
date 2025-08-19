@@ -23,12 +23,20 @@ export const routes: Routes = [
         loadChildren: () => import('./features/leave-management/leave-management.module').then(m => m.LeaveManagementModule)
       },
       {
+        path: 'holiday',
+        loadChildren: () => import('./features/holiday-management/holiday-management.module').then(m => m.HolidayManagementModule)
+      },
+      {
         path: 'timelog',
         loadChildren: () => import('./features/timelog/timelog.module').then(m => m.TimelogModule)
       },
       {
         path: 'roles',
         loadChildren: () => import('./features/roles/roles.module').then(m => m.RolesModule)
+      },
+      {
+        path: 'tour',
+        loadChildren: () => import('./features/tour-management/tour-management.module').then(m => m.TourManagementModule)
       }
     ]
   },

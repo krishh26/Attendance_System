@@ -1,0 +1,293 @@
+<div class="holiday-management-container">
+  <!-- Header -->
+  <div class="header">
+    <div class="title-section">
+      <h1><i class="fas fa-calendar-day"></i> Holiday Management</h1>
+      <p>Manage company holidays and public holidays</p>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" (click)="showAddHolidayForm()">
+        <i class="fas fa-plus"></i> Add Holiday
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="filters-section">
+    <div class="filter-row">
+      <div class="filter-group">
+        <label for="search">Search:</label>
+        <input 
+          type="text" 
+          id="search" 
+          [(ngModel)]="searchTerm" 
+          (input)="onSearch()"
+          placeholder="Search holidays..."
+          class="form-control"
+        >
+      </div>
+
+      <div class="filter-group">
+        <label for="year">Year:</label>
+        <select 
+          id="year" 
+          [(ngModel)]="yearFilter" 
+          (change)="onYearChange()"
+          class="form-control"
+        >
+          <option *ngFor="let year of getYearOptions()" [value]="year">{{ year }}</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="status">Status:</label>
+        <select 
+          id="status" 
+          [(ngModel)]="statusFilter" 
+          (change)="onFilterChange()"
+          class="form-control"
+        >
+          <option value="all">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+
+      <!-- <div class="filter-group">
+        <label for="optional">Type:</label>
+        <select 
+          id="optional" 
+          [(ngModel)]="optionalFilter" 
+          (change)="onFilterChange()"
+          class="form-control"
+        >
+          <option value="all">All Types</option>
+          <option value="false">Mandatory</option>
+          <option value="true">Optional</option>
+        </select>
+      </div> -->
+
+      <!-- <div class="filter-group">
+        <button 
+          type="button" 
+          class="btn btn-outline-secondary" 
+          (click)="clearFilters()"
+          [disabled]="!hasActiveFilters()"
+        >
+          <i class="fas fa-times"></i> Clear Filters
+        </button>
+      </div> -->
+    </div>
+  </div>
+
+  <!-- Error Display -->
+  <div *ngIf="error" class="alert alert-danger">
+    <i class="fas fa-exclamation-triangle"></i> {{ error }}
+    <button type="button" class="btn-close" (click)="error = null">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <!-- Success Display -->
+  <div *ngIf="successMessage" class="alert alert-success">
+    <i class="fas fa-check-circle"></i> {{ successMessage }}
+    <button type="button" class="btn-close" (click)="successMessage = null">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading holidays...</p>
+  </div>
+
+  <!-- Holidays Table -->
+  <div *ngIf="!loading" class="table-container">
+    <!-- Summary -->
+    <div *ngIf="holidays.length > 0" class="summary-section">
+      <p class="summary-text">
+        Showing {{ filteredHolidays.length }} of {{ holidays.length }} holidays
+        <span *ngIf="filteredHolidays.length !== holidays.length" class="filtered-indicator">
+          (filtered)
+        </span>
+      </p>
+    </div>
+    
+    <div *ngIf="filteredHolidays.length === 0" class="no-data">
+      <i class="fas fa-calendar-times"></i>
+      <h3 *ngIf="holidays.length === 0">No holidays found</h3>
+      <h3 *ngIf="holidays.length > 0">No holidays match your filters</h3>
+      <p *ngIf="holidays.length === 0">No holidays have been added yet. Add your first holiday to get started.</p>
+      <p *ngIf="holidays.length > 0">No holidays match your current filters. Try adjusting your search criteria.</p>
+    </div>
+
+    <table *ngIf="filteredHolidays.length > 0" class="holidays-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Date</th>
+          <th>Description</th>
+          <!-- <th>Type</th> -->
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let holiday of filteredHolidays" class="holiday-row">
+          <td class="holiday-name">{{ holiday.name }}</td>
+          <td class="holiday-date">{{ formatDate(holiday.date) }}</td>
+          <td class="holiday-description">{{ holiday.description }}</td>
+          <!-- <td class="holiday-type">
+            <span class="badge" [class]="holiday.isOptional ? 'badge-warning' : 'badge-primary'">
+              {{ holiday.isOptional ? 'Optional' : 'Mandatory' }}
+            </span>
+          </td> -->
+          <td class="holiday-status">
+            <span class="badge" [class]="holiday.isActive ? 'badge-success' : 'badge-secondary'">
+              {{ holiday.isActive ? 'Active' : 'Inactive' }}
+            </span>
+          </td>
+          <td class="holiday-actions">
+            <button 
+              class="btn btn-sm btn-outline-primary" 
+              (click)="showEditHolidayForm(holiday)"
+              title="Edit Holiday"
+            >
+              <i class="fas fa-edit"></i>
+            </button>
+            <button 
+              class="btn btn-sm btn-outline-success" 
+              (click)="toggleHolidayStatus(holiday)"
+              [title]="holiday.isActive ? 'Deactivate' : 'Activate'"
+            >
+              <i [class]="holiday.isActive ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+            </button>
+            <button 
+              class="btn btn-sm btn-outline-danger" 
+              (click)="showDeleteConfirmation(holiday)"
+              title="Delete Holiday"
+            >
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Add/Edit Form Modal -->
+  <div *ngIf="showAddForm || showEditForm" class="modal-overlay" (click)="closeForms()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>{{ showEditForm ? 'Edit Holiday' : 'Add New Holiday' }}</h3>
+        <button type="button" class="btn-close" (click)="closeForms()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <form (ngSubmit)="onSubmit()" class="holiday-form">
+        <div class="form-group">
+          <label for="holidayName">Holiday Name *</label>
+          <input 
+            type="text" 
+            id="holidayName" 
+            [(ngModel)]="holidayForm.name" 
+            name="name"
+            class="form-control" 
+            placeholder="Enter holiday name"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="holidayDate">Date *</label>
+          <input 
+            type="date" 
+            id="holidayDate" 
+            [(ngModel)]="holidayForm.date" 
+            name="date"
+            class="form-control" 
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="holidayDescription">Description *</label>
+          <textarea 
+            id="holidayDescription" 
+            [(ngModel)]="holidayForm.description" 
+            name="description"
+            class="form-control" 
+            rows="3"
+            placeholder="Enter holiday description"
+            required
+          ></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                [(ngModel)]="holidayForm.isActive" 
+                name="isActive"
+              >
+              <span class="checkmark"></span>
+              Active
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                [(ngModel)]="holidayForm.isOptional" 
+                name="isOptional"
+              >
+              <span class="checkmark"></span>
+              Optional Holiday
+            </label>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="closeForms()">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary" [disabled]="formLoading">
+            <span *ngIf="formLoading" class="spinner-small"></span>
+            {{ showEditForm ? 'Update' : 'Create' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div *ngIf="showDeleteConfirm" class="modal-overlay" (click)="cancelDelete()">
+    <div class="modal-content delete-confirm" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Confirm Delete</h3>
+        <button type="button" class="btn-close" (click)="cancelDelete()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p>Are you sure you want to delete the holiday "<strong>{{ holidayToDelete?.name }}</strong>"?</p>
+        <p class="text-muted">This action cannot be undone.</p>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="cancelDelete()">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-danger" (click)="confirmDelete()" [disabled]="deleteLoading">
+          <span *ngIf="deleteLoading" class="spinner-small"></span>
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

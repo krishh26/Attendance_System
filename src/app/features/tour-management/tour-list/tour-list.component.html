@@ -1,0 +1,323 @@
+<div class="tour-management-container">
+  <!-- Header -->
+  <div class="header">
+    <div class="title-section">
+      <h1><i class="fas fa-map-marked-alt"></i> Tour Management</h1>
+      <p>Manage employee site visits and tours</p>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" (click)="createTour()">
+        <i class="fas fa-plus"></i> Create Tour
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="filters-section">
+    <div class="filter-row">
+      <div class="filter-group">
+        <label for="search">Search:</label>
+        <input 
+          type="text" 
+          id="search" 
+          [(ngModel)]="searchTerm" 
+          (input)="onSearch()"
+          placeholder="Search tours..."
+          class="form-control"
+        >
+      </div>
+
+      <div class="filter-group">
+        <label for="status">Status:</label>
+        <select 
+          id="status" 
+          [(ngModel)]="statusFilter" 
+          (change)="onFilterChange()"
+          class="form-control"
+        >
+          <option *ngFor="let status of getAvailableStatuses()" [value]="status">
+            {{ getStatusDisplayName(status) }}
+          </option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="startDate">Start Date:</label>
+        <input 
+          type="date" 
+          id="startDate" 
+          [(ngModel)]="startDateFilter" 
+          (change)="onFilterChange()"
+          class="form-control"
+        >
+      </div>
+
+      <div class="filter-group">
+        <label for="endDate">End Date:</label>
+        <input 
+          type="date" 
+          id="endDate" 
+          [(ngModel)]="endDateFilter" 
+          (change)="onFilterChange()"
+          class="form-control"
+        >
+      </div>
+
+      <div class="filter-group">
+        <button 
+          type="button" 
+          class="btn btn-outline-secondary" 
+          (click)="clearFilters()"
+          [disabled]="!hasActiveFilters()"
+        >
+          <i class="fas fa-times"></i> Clear Filters
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Display -->
+  <div *ngIf="error" class="alert alert-danger">
+    <i class="fas fa-exclamation-triangle"></i> {{ error }}
+    <button type="button" class="btn-close" (click)="error = null">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <!-- Success Display -->
+  <div *ngIf="successMessage" class="alert alert-success">
+    <i class="fas fa-check-circle"></i> {{ successMessage }}
+    <button type="button" class="btn-close" (click)="successMessage = null">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading tours...</p>
+  </div>
+
+  <!-- Tours Table -->
+  <div *ngIf="!loading" class="table-container">
+    <!-- Summary -->
+    <div *ngIf="totalItems > 0" class="summary-section">
+      <p class="summary-text">
+        Showing {{ filteredTours.length }} of {{ totalItems }} tours
+        <span *ngIf="filteredTours.length !== totalItems" class="filtered-indicator">
+          (filtered)
+        </span>
+      </p>
+    </div>
+    
+    <div *ngIf="filteredTours.length === 0" class="no-data">
+      <i class="fas fa-map-marked-alt"></i>
+      <h3 *ngIf="totalItems === 0">No tours found</h3>
+      <h3 *ngIf="totalItems > 0">No tours match your filters</h3>
+      <p *ngIf="totalItems === 0">No tours have been created yet. Create your first tour to get started.</p>
+      <p *ngIf="totalItems > 0">No tours match your current filters. Try adjusting your search criteria.</p>
+    </div>
+
+    <table *ngIf="filteredTours.length > 0" class="tours-table">
+      <thead>
+        <tr>
+          <th>Employee</th>
+          <th>Purpose</th>
+          <th>Location</th>
+          <th>Expected Time</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let tour of filteredTours" class="tour-row">
+          <td class="tour-employee">
+            <div class="employee-info">
+              <div class="employee-name" *ngIf="tour.assignedTo; else noEmployee">
+                {{ tour?.assignedTo?.firstname }} {{ tour?.assignedTo?.lastname }}
+              </div>
+              <div class="employee-email" *ngIf="tour.assignedTo">
+                {{ tour?.assignedTo?.email }}
+              </div>
+              <ng-template #noEmployee>
+                <div class="no-employee">
+                  <span class="badge badge-warning">Unassigned</span>
+                </div>
+              </ng-template>
+            </div>
+          </td>
+          <td class="tour-purpose">{{ tour.purpose }}</td>
+          <td class="tour-location">{{ tour.location }}</td>
+          <td class="tour-time">{{ formatDate(tour.expectedTime) }}</td>
+          <td class="tour-status">
+            <span class="badge" [class]="getStatusBadgeClass(tour.status)">
+              {{ getStatusDisplayName(tour.status) }}
+            </span>
+          </td>
+          <td class="tour-actions">
+            <button 
+              class="btn btn-sm btn-outline-info" 
+              (click)="viewTourDetails(tour)"
+              title="View Details"
+            >
+              <i class="fas fa-eye"></i>
+            </button>
+            <button 
+              class="btn btn-sm btn-outline-primary" 
+              (click)="editTour(tour)"
+              title="Edit Tour"
+            >
+              <i class="fas fa-edit"></i>
+            </button>
+            <button 
+              class="btn btn-sm btn-outline-success" 
+              (click)="showStatusUpdate(tour)"
+              title="Update Status"
+              *ngIf="canUpdateStatus(tour)"
+            >
+              <i class="fas fa-sync-alt"></i>
+            </button>
+            <button 
+              class="btn btn-sm btn-outline-danger" 
+              (click)="showDeleteConfirmation(tour)"
+              title="Delete Tour"
+            >
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div *ngIf="totalPages > 1" class="pagination-section">
+      <div class="pagination-info">
+        Page {{ currentPage }} of {{ totalPages }} ({{ totalItems }} total items)
+      </div>
+      <div class="pagination-controls">
+        <button 
+          class="btn btn-outline-primary" 
+          [disabled]="currentPage === 1"
+          (click)="onPageChange(currentPage - 1)"
+        >
+          <i class="fas fa-chevron-left"></i> Previous
+        </button>
+        
+        <div class="page-numbers">
+          <button 
+            *ngFor="let page of getPageNumbers()" 
+            class="btn btn-page" 
+            [class.active]="page === currentPage"
+            (click)="onPageChange(page)"
+          >
+            {{ page }}
+          </button>
+        </div>
+        
+        <button 
+          class="btn btn-outline-primary" 
+          [disabled]="currentPage === totalPages"
+          (click)="onPageChange(currentPage + 1)"
+        >
+          Next <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div *ngIf="showDeleteConfirm" class="modal-overlay" (click)="cancelDelete()">
+    <div class="modal-content delete-confirm" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Confirm Delete</h3>
+        <button type="button" class="btn-close" (click)="cancelDelete()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p>Are you sure you want to delete this tour?</p>
+        <div class="tour-info">
+          <strong>Employee:</strong> 
+          <span *ngIf="tourToDelete?.assignedTo; else noEmployeeDelete">
+            {{ tourToDelete?.assignedTo?.firstname }} {{ tourToDelete?.assignedTo?.lastname }}
+          </span>
+          <ng-template #noEmployeeDelete>
+            <span class="text-muted">Unassigned</span>
+          </ng-template>
+        </div>
+        <div class="tour-info">
+          <strong>Purpose:</strong> {{ tourToDelete?.purpose }}
+        </div>
+        <div class="tour-info">
+          <strong>Location:</strong> {{ tourToDelete?.location }}
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="cancelDelete()">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-danger" (click)="confirmDelete()" [disabled]="deleteLoading">
+          <span *ngIf="deleteLoading" class="spinner-small"></span>
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Update Modal -->
+  <div *ngIf="showStatusUpdateModal" class="modal-overlay" (click)="cancelStatusUpdate()">
+    <div class="modal-content status-update" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Update Tour Status</h3>
+        <button type="button" class="btn-close" (click)="cancelStatusUpdate()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="newStatus">New Status:</label>
+          <select 
+            id="newStatus" 
+            [(ngModel)]="newStatus" 
+            class="form-control"
+            required
+          >
+            <option *ngFor="let status of getAvailableStatuses()" [value]="status">
+              {{ getStatusDisplayName(status) }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="statusNotes">Notes (Optional):</label>
+          <textarea 
+            id="statusNotes" 
+            [(ngModel)]="statusNotes" 
+            class="form-control"
+            rows="3"
+            placeholder="Add notes about this status change..."
+          ></textarea>
+        </div>
+
+        <div class="tour-info">
+          <strong>Tour:</strong> {{ tourToUpdateStatus?.purpose }}
+          <br>
+          <strong>Location:</strong> {{ tourToUpdateStatus?.location }}
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="cancelStatusUpdate()">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-primary" (click)="confirmStatusUpdate()" [disabled]="statusUpdateLoading">
+          <span *ngIf="statusUpdateLoading" class="spinner-small"></span>
+          Update Status
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

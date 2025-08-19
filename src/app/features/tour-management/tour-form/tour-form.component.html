@@ -1,0 +1,170 @@
+<div class="tour-form-container">
+  <!-- Header -->
+  <div class="header">
+    <div class="title-section">
+      <h1>
+        <i class="fas fa-map-marked-alt"></i> 
+        {{ isEditMode ? 'Edit Tour' : 'Create New Tour' }}
+      </h1>
+      <p>{{ isEditMode ? 'Update tour details' : 'Assign a new site visit or tour to an employee' }}</p>
+    </div>
+    <div class="actions">
+      <button class="btn btn-secondary" (click)="onCancel()">
+        <i class="fas fa-arrow-left"></i> Back to List
+      </button>
+    </div>
+  </div>
+
+  <!-- Error Display -->
+  <div *ngIf="error" class="alert alert-danger">
+    <i class="fas fa-exclamation-triangle"></i> {{ error }}
+    <button type="button" class="btn-close" (click)="error = null">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <!-- Success Display -->
+  <div *ngIf="successMessage" class="alert alert-success">
+    <i class="fas fa-check-circle"></i> {{ successMessage }}
+    <button type="button" class="btn-close" (click)="successMessage = null">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading tour details...</p>
+  </div>
+
+  <!-- Tour Form -->
+  <div *ngIf="!loading" class="form-container">
+    <form [formGroup]="tourForm" (ngSubmit)="onSubmit()" class="tour-form">
+      <div class="form-section">
+        <h3>Basic Information</h3>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="assignedTo">Assign to Employee *</label>
+            <select 
+              id="assignedTo" 
+              formControlName="assignedTo"
+              class="form-control"
+              [class.is-invalid]="hasError('assignedTo', 'required')"
+            >
+              <option value="">Select an employee</option>
+              <option *ngFor="let employee of employees" [value]="employee._id">
+                {{ employee.firstname }} {{ employee.lastname }} ({{ employee.email }})
+              </option>
+            </select>
+            <div *ngIf="hasError('assignedTo', 'required')" class="error-message">
+              {{ getErrorMessage('assignedTo', 'required') }}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="expectedTime">Expected Time *</label>
+            <input 
+              type="datetime-local" 
+              id="expectedTime" 
+              formControlName="expectedTime"
+              class="form-control"
+              [class.is-invalid]="hasError('expectedTime', 'required')"
+            >
+            <div *ngIf="hasError('expectedTime', 'required')" class="error-message">
+              {{ getErrorMessage('expectedTime', 'required') }}
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="purpose">Purpose of Visit *</label>
+          <textarea 
+            id="purpose" 
+            formControlName="purpose"
+            class="form-control"
+            rows="3"
+            placeholder="Describe the purpose of the site visit or tour"
+            [class.is-invalid]="hasError('purpose', 'required') || hasError('purpose', 'minlength') || hasError('purpose', 'maxlength')"
+          ></textarea>
+          <div *ngIf="hasError('purpose', 'required')" class="error-message">
+            {{ getErrorMessage('purpose', 'required') }}
+          </div>
+          <div *ngIf="hasError('purpose', 'minlength')" class="error-message">
+            {{ getErrorMessage('purpose', 'minlength') }}
+          </div>
+          <div *ngIf="hasError('purpose', 'maxlength')" class="error-message">
+            {{ getErrorMessage('purpose', 'maxlength') }}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="location">Location *</label>
+          <input 
+            type="text" 
+            id="location" 
+            formControlName="location"
+            class="form-control"
+            placeholder="Enter the location address"
+            [class.is-invalid]="hasError('location', 'required') || hasError('location', 'minlength') || hasError('location', 'maxlength')"
+          >
+          <div *ngIf="hasError('location', 'required')" class="error-message">
+            {{ getErrorMessage('location', 'required') }}
+          </div>
+          <div *ngIf="hasError('location', 'minlength')" class="error-message">
+            {{ getErrorMessage('location', 'minlength') }}
+          </div>
+          <div *ngIf="hasError('location', 'maxlength')" class="error-message">
+            {{ getErrorMessage('location', 'maxlength') }}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Additional Notes</h3>
+        
+        <div class="form-group">
+          <label for="userNotes">Employee Notes</label>
+          <textarea 
+            id="userNotes" 
+            formControlName="userNotes"
+            class="form-control"
+            rows="3"
+            placeholder="Additional notes for the assigned employee"
+            [class.is-invalid]="hasError('userNotes', 'maxlength')"
+          ></textarea>
+          <div *ngIf="hasError('userNotes', 'maxlength')" class="error-message">
+            {{ getErrorMessage('userNotes', 'maxlength') }}
+          </div>
+          <small class="form-text">Optional notes that will be visible to the assigned employee</small>
+        </div>
+
+        <div class="form-group">
+          <label for="adminNotes">Admin Notes</label>
+          <textarea 
+            id="adminNotes" 
+            formControlName="adminNotes"
+            class="form-control"
+            rows="3"
+            placeholder="Internal notes for administrators only"
+            [class.is-invalid]="hasError('adminNotes', 'maxlength')"
+          ></textarea>
+          <div *ngIf="hasError('adminNotes', 'maxlength')" class="error-message">
+            {{ getErrorMessage('adminNotes', 'maxlength') }}
+          </div>
+          <small class="form-text">Internal notes visible only to administrators</small>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" (click)="onCancel()">
+          Cancel
+        </button>
+        <button type="submit" class="btn btn-primary" [disabled]="saving || tourForm.invalid">
+          <span *ngIf="saving" class="spinner-small"></span>
+          {{ isEditMode ? 'Update Tour' : 'Create Tour' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

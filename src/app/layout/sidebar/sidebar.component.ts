@@ -15,13 +15,13 @@ export class SidebarComponent {
   @Output() mobileClose = new EventEmitter<void>();
 
   menuItems = [
-    // {
-    //   title: 'Dashboard',
-    //   icon: 'fas fa-tachometer-alt',
-    //   route: '/admin/dashboard'
-    // },
     {
-      title: 'Users',
+      title: 'Dashboard',
+      icon: 'fas fa-tachometer-alt',
+      route: '/admin/dashboard'
+    },
+    {
+      title: 'Employees',
       icon: 'fas fa-users',
       route: '/admin/user-list'
     },
@@ -35,16 +35,21 @@ export class SidebarComponent {
       icon: 'fas fa-clock',
       route: '/admin/timelog/list'
     },
-    // {
-    //   title: 'Roles & Permissions',
-    //   icon: 'fas fa-user-shield',
-    //   route: '/admin/roles/list'
-    // },
-    // {
-    //   title: 'Settings',
-    //   icon: 'fas fa-cog',
-    //   route: '/admin/settings'
-    // }
+    {
+      title: 'Roles & Permissions',
+      icon: 'fas fa-user-shield',
+      route: '/admin/roles/list'
+    },
+    {
+      title: 'Holidays',
+      icon: 'fas fa-calendar-day',
+      route: '/admin/holiday/list'
+    },
+    {
+      title: 'Employee Tours',
+      icon: 'fas fa-map-marked-alt',
+      route: '/admin/tour/list'
+    }
   ];
 
   @HostListener('window:resize', ['$event'])
