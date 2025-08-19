@@ -135,6 +135,38 @@
           opacity: 1;
           transition: opacity 0.3s;
         }
+
+        .submenu-arrow {
+          margin-left: auto;
+          font-size: 0.8rem;
+          transition: transform 0.3s;
+        }
+      }
+
+      &.has-submenu {
+        .submenu {
+          background-color: rgba(0, 0, 0, 0.1);
+          margin-left: 20px;
+          border-left: 2px solid rgba(255, 255, 255, 0.1);
+
+          li {
+            a {
+              padding: 8px 20px;
+              font-size: 0.85rem;
+              color: rgba(255, 255, 255, 0.8);
+
+              &:hover {
+                background-color: rgba(255, 255, 255, 0.05);
+                color: #ffffff;
+              }
+
+              &.active {
+                background-color: rgba(255, 255, 255, 0.1);
+                color: #ffffff;
+              }
+            }
+          }
+        }
       }
     }
   }

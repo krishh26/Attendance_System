@@ -1,8 +1,8 @@
-import { Injectable, PLATFORM_ID, Inject } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { tap, map, catchError } from 'rxjs/operators';
-import { isPlatformBrowser } from '@angular/common';
+import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
 import { Router } from '@angular/router';
+import { Observable, BehaviorSubject } from 'rxjs';
+import { tap } from 'rxjs/operators';
+import { isPlatformBrowser } from '@angular/common';
 import { ApiService } from '../../../shared/services/api.service';
 
 export interface LoginRequest {
@@ -10,27 +10,42 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface RolePermission {
+  module: string;
+  actions: string[];
+}
+
 export interface LoginResponse {
-  token: string;
+  access_token: string;
   user: {
-    id: number;
-    name: string;
+    id: string;
     email: string;
-    role: string;
-    department: string;
-    joinDate: string;
-    status: string;
+    firstname: string;
+    lastname: string;
+    role: {
+      id: string;
+      name: string;
+      displayName: string;
+      isSuperAdmin: boolean;
+    } | null;
+    permissions: RolePermission[];
+    isSuperAdmin: boolean;
   };
 }
 
 export interface User {
-  id: number;
-  name: string;
+  id: string;
   email: string;
-  role: string;
-  department: string;
-  joinDate: string;
-  status: string;
+  firstname: string;
+  lastname: string;
+  role: {
+    id: string;
+    name: string;
+    displayName: string;
+    isSuperAdmin: boolean;
+  } | null;
+  permissions: RolePermission[];
+  isSuperAdmin: boolean;
 }
 
 @Injectable({
@@ -43,22 +58,68 @@ export class AuthService {
   private inMemoryUser: User | null = null;
   redirectUrl: string | null = null;
 
+  // BehaviorSubject to track auth state changes - initialize with current user
+  private authStateSubject = new BehaviorSubject<User | null>(null);
+  public authStateChanged$ = this.authStateSubject.asObservable();
+
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
     private router: Router,
     private apiService: ApiService,
-  ) { }
+  ) {
+    // Initialize with current user from storage
+    this.initializeAuthState();
+  }
 
   private get isInBrowser(): boolean {
     return isPlatformBrowser(this.platformId);
   }
 
+  private initializeAuthState(): void {
+    try {
+      const currentUser = this.getUserFromStorage();
+      if (currentUser) {
+        console.log('AuthService: Initializing with existing user:', currentUser);
+        this.authStateSubject.next(currentUser);
+      } else {
+        console.log('AuthService: No existing user found');
+      }
+    } catch (error) {
+      console.error('AuthService: Error initializing auth state:', error);
+    }
+  }
+
+  private getUserFromStorage(): User | null {
+    try {
+      if (this.isInBrowser) {
+        const userStr = localStorage.getItem(this.USER_KEY);
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          console.log('AuthService: Retrieved user from storage:', user);
+          return user;
+        }
+      }
+      return this.inMemoryUser;
+    } catch (error) {
+      console.error('AuthService: Error getting user from storage:', error);
+      return null;
+    }
+  }
+
   login(email: string, password: string): Observable<any> {
     const loginData: LoginRequest = { email, password };
-    return this.apiService.post<LoginResponse>('/auth/login', loginData);
+    return this.apiService.post<LoginResponse>('/auth/login', loginData).pipe(
+      tap((response: LoginResponse) => {
+        if (response.access_token && response.user) {
+          console.log('AuthService: Login successful, setting auth data:', response.user);
+          this.setAuthData(response.access_token, response.user);
+        }
+      })
+    );
   }
 
   logout(): void {
+    console.log('AuthService: Logging out user');
     this.clearAuthData();
     this.router.navigate(['/login']);
   }
@@ -77,31 +138,63 @@ export class AuthService {
     return this.inMemoryToken;
   }
 
-  getUser(): User | null {
-    if (this.isInBrowser) {
-      const userStr = localStorage.getItem(this.USER_KEY);
-      return userStr ? JSON.parse(userStr) : null;
+  getFullName(): string {
+    const user = this.getUser();
+    if (user) {
+      return `${user.firstname} ${user.lastname}`.trim();
     }
-    return this.inMemoryUser;
+    return '';
+  }
+
+  getUser(): User | null {
+    try {
+      if (this.isInBrowser) {
+        const userStr = localStorage.getItem(this.USER_KEY);
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          console.log('AuthService: Getting current user:', user);
+          return user;
+        }
+      }
+      return this.inMemoryUser;
+    } catch (error) {
+      console.error('AuthService: Error getting user:', error);
+      return null;
+    }
   }
 
   setAuthData(token: string, user: User): void {
-    if (this.isInBrowser) {
-      localStorage.setItem(this.TOKEN_KEY, token);
-      localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-    } else {
-      this.inMemoryToken = token;
-      this.inMemoryUser = user;
+    console.log('AuthService: Setting auth data for user:', user);
+    try {
+      if (this.isInBrowser) {
+        localStorage.setItem(this.TOKEN_KEY, token);
+        localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+      } else {
+        this.inMemoryToken = token;
+        this.inMemoryUser = user;
+      }
+      // Emit auth state change
+      this.authStateSubject.next(user);
+      console.log('AuthService: Auth state updated, user isSuperAdmin:', user.isSuperAdmin);
+    } catch (error) {
+      console.error('AuthService: Error setting auth data:', error);
     }
   }
 
   clearAuthData(): void {
-    if (this.isInBrowser) {
-      localStorage.removeItem(this.TOKEN_KEY);
-      localStorage.removeItem(this.USER_KEY);
-    } else {
-      this.inMemoryToken = null;
-      this.inMemoryUser = null;
+    console.log('AuthService: Clearing auth data');
+    try {
+      if (this.isInBrowser) {
+        localStorage.removeItem(this.TOKEN_KEY);
+        localStorage.removeItem(this.USER_KEY);
+      } else {
+        this.inMemoryToken = null;
+        this.inMemoryUser = null;
+      }
+      // Emit auth state change
+      this.authStateSubject.next(null);
+    } catch (error) {
+      console.error('AuthService: Error clearing auth data:', error);
     }
   }
 
@@ -114,5 +207,20 @@ export class AuthService {
       token,
       newPassword
     });
+  }
+
+  // Helper method to check if current user is super admin
+  isCurrentUserSuperAdmin(): boolean {
+    const user = this.getUser();
+    const isSuperAdmin = user?.isSuperAdmin || false;
+    console.log('AuthService: Checking super admin status:', isSuperAdmin, 'for user:', user);
+    return isSuperAdmin;
+  }
+
+  // Method to manually refresh auth state (useful for debugging)
+  refreshAuthState(): void {
+    console.log('AuthService: Manually refreshing auth state');
+    const currentUser = this.getUser();
+    this.authStateSubject.next(currentUser);
   }
 }

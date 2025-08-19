@@ -7,14 +7,38 @@
   </div>
 
   <div class="navbar-right">
+    <!-- Refresh Auth State button -->
+    <button
+      class="refresh-btn"
+      (click)="refreshAuthState()"
+      title="Refresh auth state (Debug)">
+      <i class="fas fa-sync-alt"></i>
+    </button>
+
+    <!-- Debug button for development -->
+    <button
+      class="debug-btn"
+      (click)="showPermissions()"
+      title="Show current user permissions (Debug)">
+      <i class="fas fa-bug"></i>
+    </button>
+
+    <!-- Super Admin Status button -->
+    <button
+      class="super-admin-btn"
+      (click)="showSuperAdminStatus()"
+      title="Show super admin status">
+      <i class="fas fa-crown"></i>
+    </button>
+
     <div class="user-menu">
       <button class="user-btn">
         <div class="user-avatar">
           <i class="fas fa-user"></i>
         </div>
         <div class="user-info">
-          <span class="user-name">Admin</span>
-          <span class="user-role">Administrator</span>
+          <span class="user-name">{{ getFullName() }}</span>
+          <span class="user-role">{{ getRoleName() }}</span>
         </div>
       </button>
       <div class="dropdown-menu">

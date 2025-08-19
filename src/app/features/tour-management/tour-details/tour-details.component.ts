@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { TourService, Tour, UpdateTourStatusDto } from '../services/tour.service';
+import { PermissionService } from '../../../shared/services/permission.service';
 
 @Component({
   selector: 'app-tour-details',
@@ -33,7 +34,8 @@ export class TourDetailsComponent implements OnInit, OnDestroy {
   constructor(
     private tourService: TourService,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private permissionService: PermissionService
   ) {}
 
   ngOnInit(): void {
@@ -192,7 +194,7 @@ export class TourDetailsComponent implements OnInit, OnDestroy {
   // Get available statuses for update
   getAvailableStatuses(): string[] {
     if (!this.tour) return this.tourService.getAvailableStatuses();
-    
+
     // Only show valid status transitions for the current status
     const validTransitions: { [key: string]: string[] } = {
       'pending': ['assigned', 'cancelled'],
@@ -206,17 +208,23 @@ export class TourDetailsComponent implements OnInit, OnDestroy {
 
     const currentStatus = this.tour.status;
     const allowedTransitions = validTransitions[currentStatus] || [];
-    
+
     // Include current status for reference and allow keeping it (though it will be validated)
     return [currentStatus, ...allowedTransitions.filter(s => s !== currentStatus)];
   }
 
-  // Check if status can be updated
+  // Permission checking methods
   canUpdateStatus(): boolean {
-    if (!this.tour) return false;
-    // Only allow status updates for certain statuses
-    const updatableStatuses = ['pending', 'assigned', 'in-progress'];
-    return updatableStatuses.includes(this.tour.status);
+    return this.permissionService.hasPermission('tour', 'approve') ||
+           this.permissionService.hasPermission('tour', 'update');
+  }
+
+  canEdit(): boolean {
+    return this.permissionService.hasPermission('tour', 'update');
+  }
+
+  canView(): boolean {
+    return this.permissionService.hasPermission('tour', 'read');
   }
 
   // Check if status update button should be disabled

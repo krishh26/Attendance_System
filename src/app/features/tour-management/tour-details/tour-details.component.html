@@ -6,14 +6,18 @@
       <p>View and manage tour information</p>
     </div>
     <div class="actions">
-      <button 
+      <button
         *ngIf="canUpdateStatus()"
-        class="btn btn-primary" 
+        class="btn btn-primary"
         (click)="showStatusUpdate()"
       >
         <i class="fas fa-edit"></i> Update Status
       </button>
-      <button class="btn btn-secondary" (click)="editTour()">
+      <button
+        *ngIf="canEdit()"
+        class="btn btn-secondary"
+        (click)="editTour()"
+      >
         <i class="fas fa-edit"></i> Edit Tour
       </button>
       <button class="btn btn-outline-secondary" (click)="goBack()">
@@ -176,8 +180,8 @@
       <div class="modal-body">
         <div class="form-group">
           <label for="newStatus">New Status</label>
-          <select 
-            id="newStatus" 
+          <select
+            id="newStatus"
             [(ngModel)]="newStatus"
             class="form-control"
             required
@@ -194,8 +198,8 @@
 
         <div class="form-group">
           <label for="statusNotes">Notes (Optional)</label>
-          <textarea 
-            id="statusNotes" 
+          <textarea
+            id="statusNotes"
             [(ngModel)]="statusNotes"
             class="form-control"
             rows="3"
@@ -205,7 +209,7 @@
 
         <!-- Show current status for reference -->
         <div class="current-status-info">
-          <strong>Current Status:</strong> 
+          <strong>Current Status:</strong>
           <span class="badge" [class]="getStatusBadgeClass(tour?.status || '')">
             {{ getStatusDisplayName(tour?.status || '') }}
           </span>
