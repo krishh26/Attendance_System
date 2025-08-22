@@ -6,11 +6,20 @@
 
   <nav class="menu">
     <ul>
-      <li *ngFor="let item of menuItems">
+      <li *ngFor="let item of menuItems" [class.has-submenu]="item.submenu && item.submenu.length > 0">
         <a [routerLink]="item.route" routerLinkActive="active" (click)="onMobileItemClick()">
           <i [class]="item.icon"></i>
           <span *ngIf="!isCollapsed">{{ item.title }}</span>
+          <i *ngIf="item.submenu && item.submenu.length > 0 && !isCollapsed" class="fas fa-chevron-down submenu-arrow"></i>
         </a>
+
+        <ul *ngIf="item.submenu && item.submenu.length > 0 && !isCollapsed" class="submenu">
+          <li *ngFor="let subItem of item.submenu">
+            <a [routerLink]="subItem.route" routerLinkActive="active" (click)="onMobileItemClick()">
+              <span>{{ subItem.title }}</span>
+            </a>
+          </li>
+        </ul>
       </li>
     </ul>
   </nav>

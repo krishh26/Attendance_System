@@ -1,0 +1,173 @@
+<div class="role-form-container">
+  <div class="form-header">
+    <h2>{{ isEditMode ? 'Edit Role' : 'Create New Role' }}</h2>
+    <p>{{ isEditMode ? 'Update role details and permissions' : 'Create a new role and assign permissions' }}</p>
+  </div>
+
+  <form [formGroup]="roleForm" (ngSubmit)="onSubmit()" class="role-form">
+    <!-- Basic Role Information -->
+    <div class="form-section">
+      <h3>Basic Information</h3>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="name">Role Name *</label>
+          <input
+            id="name"
+            type="text"
+            formControlName="name"
+            placeholder="Enter role name (e.g., admin, manager)"
+            class="form-control"
+            [class.error]="roleForm.get('name')?.invalid && roleForm.get('name')?.touched">
+          <div class="error-message" *ngIf="roleForm.get('name')?.invalid && roleForm.get('name')?.touched">
+            <span *ngIf="roleForm.get('name')?.errors?.['required']">Role name is required</span>
+            <span *ngIf="roleForm.get('name')?.errors?.['minlength']">Role name must be at least 3 characters</span>
+            <span *ngIf="roleForm.get('name')?.errors?.['maxlength']">Role name cannot exceed 50 characters</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="displayName">Display Name *</label>
+          <input
+            id="displayName"
+            type="text"
+            formControlName="displayName"
+            placeholder="Enter display name (e.g., Administrator, Manager)"
+            class="form-control"
+            [class.error]="roleForm.get('displayName')?.invalid && roleForm.get('displayName')?.touched">
+          <div class="error-message" *ngIf="roleForm.get('displayName')?.invalid && roleForm.get('displayName')?.touched">
+            <span *ngIf="roleForm.get('displayName')?.errors?.['required']">Display name is required</span>
+            <span *ngIf="roleForm.get('displayName')?.errors?.['minlength']">Display name must be at least 3 characters</span>
+            <span *ngIf="roleForm.get('displayName')?.errors?.['maxlength']">Display name cannot exceed 100 characters</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea
+          id="description"
+          formControlName="description"
+          placeholder="Enter role description (optional)"
+          class="form-control"
+          rows="3"
+          [class.error]="roleForm.get('description')?.invalid && roleForm.get('description')?.touched">
+        </textarea>
+        <div class="error-message" *ngIf="roleForm.get('description')?.invalid && roleForm.get('description')?.touched">
+          <span *ngIf="roleForm.get('description')?.errors?.['maxlength']">Description cannot exceed 500 characters</span>
+        </div>
+      </div>
+
+      <div class="form-group checkbox-group">
+        <label class="checkbox-label">
+          <input
+            type="checkbox"
+            formControlName="isSuperAdmin"
+            class="checkbox-input">
+          <span class="checkmark"></span>
+          Super Administrator Role
+        </label>
+        <p class="help-text">Super administrators have access to all modules and can manage all roles and permissions.</p>
+      </div>
+    </div>
+
+    <!-- Permissions Section -->
+    <div class="form-section" *ngIf="!roleForm.get('isSuperAdmin')?.value">
+      <h3>Permissions</h3>
+      <p class="section-description">Select the permissions this role should have access to:</p>
+
+      <!-- Permission Summary -->
+      <div class="permission-summary" *ngIf="!loading && !error">
+        <div class="summary-stats">
+          <span class="stat-item">
+            <i class="fas fa-check-circle"></i>
+            {{ getTotalSelectedPermissionsCount() }} permissions selected
+          </span>
+          <span class="stat-item">
+            <i class="fas fa-layer-group"></i>
+            {{ availableModules.length }} modules available
+          </span>
+          <span class="stat-item">
+            <i class="fas fa-shield-alt"></i>
+            {{ getTotalAvailablePermissionsCount() }} total permissions
+          </span>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div class="loading-state" *ngIf="loading">
+        <div class="spinner"></div>
+        <p>Loading permissions...</p>
+      </div>
+
+      <!-- Error State -->
+      <div class="error-state" *ngIf="error">
+        <i class="fas fa-exclamation-triangle"></i>
+        <p>{{ error }}</p>
+      </div>
+
+      <!-- Permissions by Module -->
+      <div class="permissions-modules" *ngIf="!loading && !error">
+        <div class="module-section" *ngFor="let module of availableModules">
+          <div class="module-header">
+            <h4>{{ getModuleDisplayName(module) }}</h4>
+            <div class="module-actions">
+              <button
+                type="button"
+                class="btn-select-all"
+                (click)="onSelectAllModule(module)"
+                [class.selected]="isModuleSelected(module)"
+                [class.partial]="isModulePartiallySelected(module)">
+                {{ isModuleSelected(module) ? 'Deselect All' : 'Select All' }}
+              </button>
+              <span class="permission-count">
+                {{ getSelectedPermissionCount(module) }}/{{ availableActions.length }}
+              </span>
+            </div>
+          </div>
+
+          <div class="permissions-grid">
+            <label class="permission-item" *ngFor="let action of availableActions">
+              <input
+                type="checkbox"
+                [checked]="isActionSelected(module, action)"
+                (change)="onActionToggle(module, action)"
+                class="permission-checkbox">
+              <span class="permission-label">
+                <span class="permission-name">{{ getActionDisplayName(action) }}</span>
+                <span class="permission-action">{{ action | titlecase }}</span>
+                <span class="permission-description">
+                  {{ getActionDescription(module, action) }}
+                </span>
+              </span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Super Admin Note -->
+      <div class="super-admin-note" *ngIf="roleForm.get('isSuperAdmin')?.value">
+        <i class="fas fa-shield-alt"></i>
+        <p>Super administrators automatically have access to all permissions across all modules.</p>
+      </div>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button
+        type="button"
+        class="btn-cancel"
+        (click)="onCancel()">
+        Cancel
+      </button>
+      <button
+        type="submit"
+        class="btn-save"
+        [disabled]="roleForm.invalid || loading">
+        <i class="fas fa-save" *ngIf="!loading"></i>
+        <i class="fas fa-spinner fa-spin" *ngIf="loading"></i>
+        {{ isEditMode ? 'Update Role' : 'Create Role' }}
+      </button>
+    </div>
+  </form>
+</div>

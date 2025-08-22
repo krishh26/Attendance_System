@@ -57,6 +57,63 @@
   align-items: center;
   gap: 16px;
 
+  .refresh-btn {
+    background: #17a2b8;
+    border: none;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.3s;
+
+    &:hover {
+      background: #138496;
+    }
+
+    i {
+      margin-right: 4px;
+    }
+  }
+
+  .debug-btn {
+    background: #ff6b6b;
+    border: none;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.3s;
+
+    &:hover {
+      background: #ff5252;
+    }
+
+    i {
+      margin-right: 4px;
+    }
+  }
+
+  .super-admin-btn {
+    background: #ffd700;
+    border: none;
+    color: #333;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.3s;
+
+    &:hover {
+      background: #ffed4e;
+    }
+
+    i {
+      margin-right: 4px;
+    }
+  }
+
   .user-menu {
     position: relative;
 

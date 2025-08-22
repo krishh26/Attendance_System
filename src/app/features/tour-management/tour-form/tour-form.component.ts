@@ -5,6 +5,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { TourService, Tour, CreateTourDto, UpdateTourDto } from '../services/tour.service';
 import { UserService, User } from '../../admin/user-list/user.service';
+import { PermissionService } from '../../../shared/services/permission.service';
 
 @Component({
   selector: 'app-tour-form',
@@ -18,7 +19,7 @@ export class TourFormComponent implements OnInit, OnDestroy {
   tourForm: FormGroup;
   isEditMode = false;
   tourId: string | null = null;
-  
+
   // Data
   tour: Tour | null = null;
   employees: User[] = [];
@@ -34,7 +35,8 @@ export class TourFormComponent implements OnInit, OnDestroy {
     private tourService: TourService,
     private userService: UserService,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private permissionService: PermissionService
   ) {
     this.tourForm = this.fb.group({
       assignedTo: ['', Validators.required],
@@ -48,7 +50,8 @@ export class TourFormComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadEmployees();
-    
+    this.checkPermissions();
+
     this.route.params.subscribe(params => {
       if (params['id']) {
         this.isEditMode = true;
@@ -61,6 +64,34 @@ export class TourFormComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  // Permission checking methods
+  canCreate(): boolean {
+    return this.permissionService.hasPermission('tour', 'create');
+  }
+
+  canEdit(): boolean {
+    return this.permissionService.hasPermission('tour', 'update');
+  }
+
+  canView(): boolean {
+    return this.permissionService.hasPermission('tour', 'read');
+  }
+
+  // Check permissions and redirect if not allowed
+  private checkPermissions(): void {
+    if (this.isEditMode && !this.canEdit()) {
+      console.warn('User does not have permission to edit tours');
+      this.router.navigate(['/admin/tour/list']);
+      return;
+    }
+
+    if (!this.isEditMode && !this.canCreate()) {
+      console.warn('User does not have permission to create tours');
+      this.router.navigate(['/admin/tour/list']);
+      return;
+    }
   }
 
   // Load employees for assignment

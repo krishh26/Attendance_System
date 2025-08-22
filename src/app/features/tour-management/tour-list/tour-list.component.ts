@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { TourService, Tour, CreateTourDto } from '../services/tour.service';
+import { PermissionService } from '../../../shared/services/permission.service';
 
 @Component({
   selector: 'app-tour-list',
@@ -50,7 +51,8 @@ export class TourListComponent implements OnInit, OnDestroy {
   constructor(
     private tourService: TourService,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private permissionService: PermissionService
   ) {}
 
   ngOnInit(): void {
@@ -60,6 +62,28 @@ export class TourListComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  // Permission checking methods
+  canCreate(): boolean {
+    return this.permissionService.hasPermission('tour', 'create');
+  }
+
+  canEdit(): boolean {
+    return this.permissionService.hasPermission('tour', 'update');
+  }
+
+  canDelete(): boolean {
+    return this.permissionService.hasPermission('tour', 'delete');
+  }
+
+  canUpdateStatus(): boolean {
+    return this.permissionService.hasPermission('tour', 'approve') ||
+           this.permissionService.hasPermission('tour', 'update');
+  }
+
+  canView(): boolean {
+    return this.permissionService.hasPermission('tour', 'read');
   }
 
   // Load tours from API
@@ -142,8 +166,8 @@ export class TourListComponent implements OnInit, OnDestroy {
 
   // Check if any filters are active
   hasActiveFilters(): boolean {
-    return this.searchTerm !== '' || 
-           this.statusFilter !== 'all' || 
+    return this.searchTerm !== '' ||
+           this.statusFilter !== 'all' ||
            this.assignedToFilter !== '' ||
            this.startDateFilter !== '' ||
            this.endDateFilter !== '';
@@ -157,17 +181,29 @@ export class TourListComponent implements OnInit, OnDestroy {
 
   // Navigate to create tour
   createTour(): void {
-    this.router.navigate(['/admin/tour/create']);
+    if (this.canCreate()) {
+      this.router.navigate(['/admin/tour/create']);
+    } else {
+      console.warn('User does not have permission to create tours');
+    }
   }
 
   // Navigate to edit tour
   editTour(tour: Tour): void {
-    this.router.navigate(['/admin/tour/edit', tour._id]);
+    if (this.canEdit()) {
+      this.router.navigate(['/admin/tour/edit', tour._id]);
+    } else {
+      console.warn('User does not have permission to edit tours');
+    }
   }
 
   // Navigate to tour details
   viewTourDetails(tour: Tour): void {
-    this.router.navigate(['/admin/tour/details', tour._id]);
+    if (this.canView()) {
+      this.router.navigate(['/admin/tour/details', tour._id]);
+    } else {
+      console.warn('User does not have permission to view tour details');
+    }
   }
 
   // Show delete confirmation

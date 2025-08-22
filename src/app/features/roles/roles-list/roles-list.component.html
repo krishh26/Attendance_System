@@ -46,7 +46,10 @@
   <div class="content-section">
     <div class="header">
       <h1>Roles & Permissions</h1>
-      <button class="btn-add">
+      <button
+        class="btn-add"
+        *ngIf="canCreateRole()"
+        (click)="openCreateRoleModal()">
         <i class="fas fa-plus"></i>
         Create New Role
       </button>
@@ -56,18 +59,64 @@
     <div class="filters">
       <div class="search-box">
         <i class="fas fa-search"></i>
-        <input type="text" placeholder="Search roles...">
+        <input
+          type="text"
+          placeholder="Search roles..."
+          [value]="searchTerm"
+          (input)="onSearchChange($event)">
       </div>
 
       <div class="filter-buttons">
-        <button class="btn-filter active">All</button>
-        <button class="btn-filter">Active</button>
-        <button class="btn-filter">Inactive</button>
+        <button
+          class="btn-filter"
+          [class.active]="statusFilter === 'all'"
+          (click)="onStatusFilterChange('all')">
+          All
+        </button>
+        <button
+          class="btn-filter"
+          [class.active]="statusFilter === 'active'"
+          (click)="onStatusFilterChange('active')">
+          Active
+        </button>
+        <button
+          class="btn-filter"
+          [class.active]="statusFilter === 'inactive'"
+          (click)="onStatusFilterChange('inactive')">
+          Inactive
+        </button>
+      </div>
+
+      <div class="actions">
+        <button class="btn-refresh" (click)="refreshRoles()" [disabled]="loading">
+          <i class="fas fa-sync-alt" [class.fa-spin]="loading"></i>
+          Refresh
+        </button>
       </div>
     </div>
 
+    <!-- Loading State -->
+    <div class="loading-state" *ngIf="loading">
+      <div class="spinner"></div>
+      <p>Loading roles...</p>
+    </div>
+
+    <!-- Error State -->
+    <div class="error-state" *ngIf="error && !loading">
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>{{ error }}</p>
+      <button class="btn-retry" (click)="loadRoles()">Retry</button>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="!loading && !error && roles.length === 0">
+      <i class="fas fa-user-shield"></i>
+      <p>No roles found</p>
+      <p class="subtitle">Create your first role to get started</p>
+    </div>
+
     <!-- Roles Cards -->
-    <div class="roles-grid">
+    <div class="roles-grid" *ngIf="!loading && !error && roles.length > 0">
       <div class="role-card" *ngFor="let role of roles">
         <div class="role-header">
           <div class="role-title">
@@ -77,11 +126,26 @@
             </span>
           </div>
           <div class="role-actions">
-            <button class="btn-icon" title="Edit Role">
+            <button
+              class="btn-icon"
+              title="Edit Role"
+              *ngIf="canUpdateRole()"
+              (click)="openEditRoleModal(role)">
               <i class="fas fa-edit"></i>
             </button>
-            <button class="btn-icon" title="Delete Role">
+            <button
+              class="btn-icon"
+              title="Delete Role"
+              *ngIf="canDeleteRole()"
+              (click)="openDeleteRoleModal(role)">
               <i class="fas fa-trash"></i>
+            </button>
+            <button
+              class="btn-icon"
+              title="View Details"
+              *ngIf="canViewRoleDetails()"
+              (click)="viewRoleDetails(role._id)">
+              <i class="fas fa-eye"></i>
             </button>
           </div>
         </div>
@@ -90,23 +154,23 @@
 
         <div class="role-stats">
           <div class="stat">
-            <i class="fas fa-users"></i>
-            <span>{{ role.usersCount }} Users</span>
+            <i class="fas fa-key"></i>
+            <span>{{ getTotalActions(role.permissions) }} Actions</span>
           </div>
           <div class="stat">
             <i class="fas fa-calendar-alt"></i>
-            <span>Created: {{ role.createdAt }}</span>
+            <span>Created: {{ role.createdAt | date:'shortDate' }}</span>
           </div>
         </div>
 
         <div class="permissions-section">
           <h4>Permissions</h4>
           <div class="permissions-list">
-            <div class="module-permissions" *ngFor="let module of getPermissionGroups(role.permissions) | keyvalue">
-              <div class="module-name">{{ module.key }}</div>
+            <div class="module-permissions" *ngFor="let module of getPermissionGroups(role?.permissions || []) | keyvalue">
+              <div class="module-name">{{ module.key | titlecase }}</div>
               <div class="permission-chips">
-                <span class="permission-chip" *ngFor="let permission of module.value">
-                  {{ permission.name }}
+                <span class="permission-chip" *ngFor="let action of module.value[0].actions">
+                  {{ action | titlecase }}
                 </span>
               </div>
             </div>
@@ -116,16 +180,74 @@
     </div>
 
     <!-- Pagination -->
-    <div class="pagination">
-      <button class="btn-page" disabled>
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button
+        class="btn-page"
+        [disabled]="currentPage === 1"
+        (click)="onPageChange(currentPage - 1)">
         <i class="fas fa-chevron-left"></i>
       </button>
-      <button class="btn-page active">1</button>
-      <button class="btn-page">2</button>
-      <button class="btn-page">3</button>
-      <button class="btn-page">
+
+      <button
+        class="btn-page"
+        *ngFor="let page of pages"
+        [class.active]="page === currentPage"
+        (click)="onPageChange(page)">
+        {{ page }}
+      </button>
+
+      <button
+        class="btn-page"
+        [disabled]="currentPage === totalPages"
+        (click)="onPageChange(currentPage + 1)">
         <i class="fas fa-chevron-right"></i>
       </button>
+    </div>
+  </div>
+
+  <!-- Create Role Modal -->
+  <div class="modal-overlay" *ngIf="showCreateModal" (click)="onRoleCancel()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <app-role-form
+        (save)="onRoleSave($event)"
+        (cancel)="onRoleCancel()">
+      </app-role-form>
+    </div>
+  </div>
+
+  <!-- Edit Role Modal -->
+  <div class="modal-overlay" *ngIf="showEditModal" (click)="onRoleCancel()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <app-role-form
+        [role]="selectedRole"
+        [isEditMode]="true"
+        (save)="onRoleSave($event)"
+        (cancel)="onRoleCancel()">
+      </app-role-form>
+    </div>
+  </div>
+
+  <!-- Delete Role Modal -->
+  <div class="modal-overlay" *ngIf="showDeleteModal" (click)="onRoleCancel()">
+    <div class="modal-content delete-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Delete Role</h3>
+        <button class="btn-close" (click)="onRoleCancel()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete the role <strong>"{{ selectedRole?.displayName }}"</strong>?</p>
+        <p class="warning">This action cannot be undone and will remove all permissions associated with this role.</p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" (click)="onRoleCancel()">Cancel</button>
+        <button class="btn-delete" (click)="confirmDeleteRole()" [disabled]="loading">
+          <i class="fas fa-trash" *ngIf="!loading"></i>
+          <i class="fas fa-spinner fa-spin" *ngIf="loading"></i>
+          Delete Role
+        </button>
+      </div>
     </div>
   </div>
 </div>

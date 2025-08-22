@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import { LeaveService, LeaveRequest, LeaveListParams } from '../services/leave.service';
 import { StatusUpdateModalComponent } from './status-update-modal/status-update-modal.component';
+import { PermissionService } from '../../../shared/services/permission.service';
 
 @Component({
   selector: 'app-leave-list',
@@ -41,7 +42,10 @@ export class LeaveListComponent implements OnInit, OnDestroy {
   private searchSubject = new Subject<string>();
   private destroy$ = new Subject<void>();
 
-  constructor(private leaveService: LeaveService) {
+  constructor(
+    private leaveService: LeaveService,
+    private permissionService: PermissionService
+  ) {
     // Setup search debouncing
     this.searchSubject
       .pipe(
@@ -62,6 +66,44 @@ export class LeaveListComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  // Permission checking methods
+  canCreate(): boolean {
+    return this.permissionService.hasPermission('leave', 'create');
+  }
+
+  canEdit(leave: LeaveRequest): boolean {
+    return this.permissionService.hasPermission('leave', 'update');
+  }
+
+  canDelete(leave: LeaveRequest): boolean {
+    return this.permissionService.hasPermission('leave', 'delete');
+  }
+
+  canApproveReject(leave: LeaveRequest): boolean {
+    return this.permissionService.hasPermission('leave', 'approve') ||
+           this.permissionService.hasPermission('leave', 'reject');
+  }
+
+  canUpdateStatus(): boolean {
+    return this.permissionService.hasPermission('leave', 'approve') ||
+           this.permissionService.hasPermission('leave', 'update');
+  }
+
+  canView(): boolean {
+    return this.permissionService.hasPermission('leave', 'read');
+  }
+
+  // Create new leave request
+  createLeaveRequest(): void {
+    if (this.canCreate()) {
+      // Navigate to create leave request page
+      console.log('Navigating to create leave request');
+      // this.router.navigate(['/admin/leave/create']);
+    } else {
+      console.warn('User does not have permission to create leave requests');
+    }
   }
 
   // Load leave requests from API
@@ -147,7 +189,7 @@ export class LeaveListComponent implements OnInit, OnDestroy {
   get pages(): number[] {
     const pages: number[] = [];
     const maxVisiblePages = 5;
-    
+
     if (this.totalPages <= maxVisiblePages) {
       for (let i = 1; i <= this.totalPages; i++) {
         pages.push(i);
@@ -155,16 +197,16 @@ export class LeaveListComponent implements OnInit, OnDestroy {
     } else {
       let startPage = Math.max(1, this.currentPage - Math.floor(maxVisiblePages / 2));
       let endPage = Math.min(this.totalPages, startPage + maxVisiblePages - 1);
-      
+
       if (endPage - startPage + 1 < maxVisiblePages) {
         startPage = Math.max(1, endPage - maxVisiblePages + 1);
       }
-      
+
       for (let i = startPage; i <= endPage; i++) {
         pages.push(i);
       }
     }
-    
+
     return pages;
   }
 
@@ -233,16 +275,6 @@ export class LeaveListComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Check if user can edit/delete (only pending requests)
-  canEdit(leaveRequest: LeaveRequest): boolean {
-    return leaveRequest.status === 'pending';
-  }
-
-  // Check if user can approve/reject (only pending requests)
-  canApproveReject(leaveRequest: LeaveRequest): boolean {
-    return leaveRequest.status === 'pending';
-  }
-
   // Get employee name (placeholder - you might need to fetch user details)
   getEmployeeName(leaveRequest: LeaveRequest): string {
     // This is a placeholder - you might need to fetch user details from another API
@@ -268,7 +300,7 @@ export class LeaveListComponent implements OnInit, OnDestroy {
 
   onStatusUpdated(data: { leaveId: string; statusData: any }): void {
     this.statusUpdateLoading = true;
-    
+
     this.leaveService.updateLeaveRequestStatus(data.leaveId, data.statusData)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -276,14 +308,14 @@ export class LeaveListComponent implements OnInit, OnDestroy {
           this.statusUpdateLoading = false;
           this.closeStatusModal();
           this.loadLeaveRequests(); // Refresh the list
-          
+
           // Show success message (you can implement a toast/notification system)
           console.log('Status updated successfully:', response);
         },
         error: (error) => {
           this.statusUpdateLoading = false;
           console.error('Error updating status:', error);
-          
+
           // Show error message
           this.error = 'Failed to update leave request status. Please try again.';
         }
