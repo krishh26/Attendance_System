@@ -77,7 +77,7 @@ export class TourListComponent implements OnInit, OnDestroy {
     return this.permissionService.hasPermission('tour', 'delete');
   }
 
-  canUpdateStatus(): boolean {
+  canUpdateStatusPermission(): boolean {
     return this.permissionService.hasPermission('tour', 'approve') ||
            this.permissionService.hasPermission('tour', 'update');
   }
