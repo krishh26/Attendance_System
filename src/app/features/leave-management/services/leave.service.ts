@@ -136,7 +136,7 @@ export class LeaveService {
 
   // Approve leave request
   approveLeaveRequest(id: string, notes?: string): Observable<any> {
-    return this.apiService.patch(`/leave-management/leave-requests/${id}/approve`, { notes }).pipe(
+    return this.apiService.put(`/leave-management/leave-requests/${id}/approve`, { notes }).pipe(
       catchError((error) => {
         console.warn('API call failed for approving leave request:', error);
         return of({ success: false, message: 'Demo mode: Leave request approval simulated' });
@@ -146,7 +146,7 @@ export class LeaveService {
 
   // Reject leave request
   rejectLeaveRequest(id: string, notes?: string): Observable<any> {
-    return this.apiService.patch(`/leave-management/leave-requests/${id}/reject`, { notes }).pipe(
+    return this.apiService.put(`/leave-management/leave-requests/${id}/reject`, { rejectionReason: notes }).pipe(
       catchError((error) => {
         console.warn('API call failed for rejecting leave request:', error);
         return of({ success: false, message: 'Demo mode: Leave request rejection simulated' });

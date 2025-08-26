@@ -83,16 +83,90 @@ export class LeaveListComponent implements OnInit, OnDestroy {
 
   canApproveReject(leave: LeaveRequest): boolean {
     return this.permissionService.hasPermission('leave', 'approve') ||
-           this.permissionService.hasPermission('leave', 'reject');
+      this.permissionService.hasPermission('leave', 'reject');
   }
 
   canUpdateStatus(): boolean {
     return this.permissionService.hasPermission('leave', 'approve') ||
-           this.permissionService.hasPermission('leave', 'update');
+      this.permissionService.hasPermission('leave', 'update');
   }
 
   canView(): boolean {
     return this.permissionService.hasPermission('leave', 'read');
+  }
+
+  // Edit leave request
+  editLeaveRequest(leaveRequest: LeaveRequest): void {
+    if (!this.canEdit(leaveRequest)) {
+      console.warn('User does not have permission to edit leave requests');
+      return;
+    }
+
+    console.log('Editing leave request:', leaveRequest._id);
+
+    // You can implement navigation to edit page or open edit modal here
+    // For now, we'll show an alert with the leave request details
+    const editDetails = `
+      Leave Request Details:
+      - Employee: ${this.getEmployeeName(leaveRequest)}
+      - Leave Type: ${this.getLeaveTypeText(leaveRequest.leaveType)}
+      - Start Date: ${this.formatDate(leaveRequest.startDate)}
+      - End Date: ${this.formatDate(leaveRequest.endDate)}
+      - Reason: ${leaveRequest.reason}
+      - Status: ${this.getStatusText(leaveRequest.status)}
+      `;
+
+    alert(editDetails);
+
+    // TODO: Implement actual edit functionality
+    // Example: this.router.navigate(['/admin/leave/edit', leaveRequest._id]);
+    // Or: this.openEditModal(leaveRequest);
+  }
+
+  // Delete leave request
+  deleteLeaveRequest(leaveRequest: LeaveRequest): void {
+    if (!this.canDelete(leaveRequest)) {
+      console.warn('User does not have permission to delete leave requests');
+      return;
+    }
+
+    console.log('Deleting leave request:', leaveRequest._id);
+
+    // Confirmation dialog
+    const confirmDelete = confirm(
+      `Are you sure you want to delete this leave request for ${this.getEmployeeName(leaveRequest)}?\n\n` +
+      `Leave Type: ${this.getLeaveTypeText(leaveRequest.leaveType)}\n` +
+      `Dates: ${this.formatDate(leaveRequest.startDate)} - ${this.formatDate(leaveRequest.endDate)}\n` +
+      `Reason: ${leaveRequest.reason}\n\n` +
+      `This action cannot be undone.`
+    );
+
+    if (confirmDelete) {
+      this.leaveService.deleteLeaveRequest(leaveRequest._id)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (response) => {
+            console.log('Leave request deleted successfully:', response);
+            this.loadLeaveRequests(); // Refresh the list
+
+            // Show success message
+            alert('Leave request deleted successfully!');
+          },
+          error: (error) => {
+            console.error('Error deleting leave request:', error);
+            console.error('Error details:', {
+              status: error.status,
+              statusText: error.statusText,
+              message: error.message,
+              url: error.url,
+              error: error.error
+            });
+
+            // Show error message
+            this.error = `Failed to delete leave request: ${error.status} - ${error.statusText || error.message}`;
+          }
+        });
+    }
   }
 
   // Create new leave request
@@ -276,10 +350,10 @@ export class LeaveListComponent implements OnInit, OnDestroy {
   }
 
   // Get employee name (placeholder - you might need to fetch user details)
-  getEmployeeName(leaveRequest: LeaveRequest): string {
+  getEmployeeName(leaveRequest: any): string {
     // This is a placeholder - you might need to fetch user details from another API
     // or include user information in the leave request response
-    return leaveRequest.userId || 'Unknown Employee';
+    return leaveRequest.userId?.firstname + ' ' + leaveRequest.userId?.lastname || 'Unknown Employee';
   }
 
   // Get end item number for pagination display
@@ -320,5 +394,96 @@ export class LeaveListComponent implements OnInit, OnDestroy {
           this.error = 'Failed to update leave request status. Please try again.';
         }
       });
+  }
+
+  // Approve leave request
+  approveLeaveRequest(leaveRequest: LeaveRequest): void {
+    if (!this.canApproveReject(leaveRequest)) {
+      console.warn('User does not have permission to approve leave requests');
+      return;
+    }
+
+    if (leaveRequest.status !== 'pending') {
+      console.warn('Only pending leave requests can be approved');
+      return;
+    }
+
+    // You can add a confirmation dialog here if needed
+    if (confirm(`Are you sure you want to approve this leave request for ${this.getEmployeeName(leaveRequest)}?`)) {
+      console.log('Approving leave request:', leaveRequest._id);
+
+      this.leaveService.approveLeaveRequest(leaveRequest._id)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (response) => {
+            console.log('Leave request approved successfully:', response);
+            this.loadLeaveRequests(); // Refresh the list
+
+            // Show success message (you can implement a toast/notification system)
+            alert('Leave request approved successfully!');
+          },
+          error: (error) => {
+            console.error('Error approving leave request:', error);
+            console.error('Error details:', {
+              status: error.status,
+              statusText: error.statusText,
+              message: error.message,
+              url: error.url,
+              error: error.error
+            });
+
+            // Show error message
+            this.error = `Failed to approve leave request: ${error.status} - ${error.statusText || error.message}`;
+          }
+        });
+    }
+  }
+
+  // Reject leave request
+  rejectLeaveRequest(leaveRequest: LeaveRequest): void {
+    if (!this.canApproveReject(leaveRequest)) {
+      console.warn('User does not have permission to reject leave requests');
+      return;
+    }
+
+    if (leaveRequest.status !== 'pending') {
+      console.warn('Only pending leave requests can be rejected');
+      return;
+    }
+
+    // Get rejection reason from user
+    const rejectionReason = prompt(`Please provide a reason for rejecting this leave request for ${this.getEmployeeName(leaveRequest)}:`);
+
+    if (rejectionReason && rejectionReason.trim()) {
+      console.log('Rejecting leave request:', leaveRequest._id, 'with reason:', rejectionReason);
+
+      this.leaveService.rejectLeaveRequest(leaveRequest._id, rejectionReason.trim())
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (response) => {
+            console.log('Leave request rejected successfully:', response);
+            this.loadLeaveRequests(); // Refresh the list
+
+            // Show success message (you can implement a toast/notification system)
+            alert('Leave request rejected successfully!');
+          },
+          error: (error) => {
+            console.error('Error rejecting leave request:', error);
+            console.error('Error details:', {
+              status: error.status,
+              statusText: error.statusText,
+              message: error.message,
+              url: error.url,
+              error: error.error
+            });
+
+            // Show error message
+            this.error = `Failed to reject leave request: ${error.status} - ${error.statusText || error.message}`;
+          }
+        });
+    } else if (rejectionReason !== null) {
+      // User clicked cancel or provided empty reason
+      alert('Rejection reason is required to reject a leave request.');
+    }
   }
 }

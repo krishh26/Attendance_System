@@ -392,6 +392,7 @@
     border-radius: 4px;
     color: #6c757d;
     transition: all 0.2s;
+    position: relative;
 
     &:hover:not(:disabled) {
       background-color: #f8f9fa;
@@ -401,22 +402,42 @@
     &:disabled {
       opacity: 0.4;
       cursor: not-allowed;
+      
+      &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+      }
     }
 
     &.delete:hover:not(:disabled) {
       color: #dc3545;
+      background-color: #fff5f5;
+    }
+
+    &.edit:hover:not(:disabled) {
+      color: #007bff;
+      background-color: #f0f8ff;
     }
 
     &.approve:hover:not(:disabled) {
       color: #28a745;
+      background-color: #f0fff4;
     }
 
     &.reject:hover:not(:disabled) {
       color: #dc3545;
+      background-color: #fff5f5;
     }
 
     &.status:hover:not(:disabled) {
       color: #17a2b8;
+      background-color: #f0f9ff;
     }
   }
 
@@ -426,6 +447,108 @@
     margin-left: 8px;
     padding-left: 8px;
     border-left: 1px solid #dee2e6;
+
+    .btn-icon {
+      &.approve {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        padding: 6px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.8rem;
+        min-width: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+
+        &:hover:not(:disabled) {
+          background-color: #218838;
+          transform: translateY(-1px);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        &:active:not(:disabled) {
+          transform: translateY(0);
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        &:disabled {
+          background-color: #6c757d;
+          cursor: not-allowed;
+          opacity: 0.6;
+          transform: none;
+          box-shadow: none;
+          
+          &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+          }
+        }
+
+        i {
+          font-size: 0.75rem;
+        }
+      }
+
+      &.reject {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 6px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.8rem;
+        min-width: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+
+        &:hover:not(:disabled) {
+          background-color: #c82333;
+          transform: translateY(-1px);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        &:active:not(:disabled) {
+          transform: translateY(0);
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        &:disabled {
+          background-color: #6c757d;
+          cursor: not-allowed;
+          opacity: 0.6;
+          transform: none;
+          box-shadow: none;
+          
+          &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+          }
+        }
+
+        i {
+          font-size: 0.75rem;
+        }
+      }
+    }
   }
 }
 

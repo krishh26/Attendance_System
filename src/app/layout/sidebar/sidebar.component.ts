@@ -226,4 +226,12 @@ export class SidebarComponent implements OnInit, OnDestroy {
       this.mobileClose.emit();
     }
   }
+
+  /**
+   * Logout user and redirect to login page
+   */
+  logout(): void {
+    console.log('SidebarComponent: Logging out user');
+    this.authService.logout();
+  }
 }

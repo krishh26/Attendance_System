@@ -23,6 +23,14 @@
       </li>
     </ul>
   </nav>
+
+  <!-- Logout button at the bottom -->
+  <div class="logout-section">
+    <button class="logout-btn" (click)="logout()" title="Logout">
+      <i class="fas fa-sign-out-alt"></i>
+      <span *ngIf="!isCollapsed">Logout</span>
+    </button>
+  </div>
 </aside>
 
 <!-- Mobile overlay -->

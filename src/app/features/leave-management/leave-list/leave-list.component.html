@@ -156,17 +156,19 @@
               <i class="fas fa-eye"></i>
             </button> -->
             <button
-              class="btn-icon"
-              title="Edit"
+              class="btn-icon edit"
+              [title]="canEdit(leave) ? 'Edit this leave request' : 'Only pending requests can be edited'"
               *ngIf="canEdit(leave)"
+              (click)="editLeaveRequest(leave)"
               [disabled]="!canEdit(leave)">
               <i class="fas fa-edit"></i>
             </button>
             <button
               class="btn-icon delete"
-              title="Delete"
-              *ngIf="canEdit(leave)"
-              [disabled]="!canEdit(leave)">
+              [title]="canDelete(leave) ? 'Delete this leave request' : 'Only pending requests can be deleted'"
+              *ngIf="canDelete(leave)"
+              (click)="deleteLeaveRequest(leave)"
+              [disabled]="!canDelete(leave)">
               <i class="fas fa-trash"></i>
             </button>
             <button
@@ -176,10 +178,18 @@
               <i class="fas fa-cog"></i>
             </button>
             <div *ngIf="canApproveReject(leave)" class="approval-actions">
-              <button class="btn-icon approve" title="Approve">
+              <button 
+                class="btn-icon approve" 
+                [title]="leave.status !== 'pending' ? 'Only pending requests can be approved' : 'Approve this leave request'"
+                (click)="approveLeaveRequest(leave)"
+                [disabled]="leave.status !== 'pending'">
                 <i class="fas fa-check"></i>
               </button>
-              <button class="btn-icon reject" title="Reject">
+              <button 
+                class="btn-icon reject" 
+                [title]="leave.status !== 'pending' ? 'Only pending requests can be rejected' : 'Reject this leave request'"
+                (click)="rejectLeaveRequest(leave)"
+                [disabled]="leave.status !== 'pending'">
                 <i class="fas fa-times"></i>
               </button>
             </div>

@@ -191,3 +191,71 @@
     }
   }
 }
+
+.logout-section {
+  margin-top: auto;
+  padding: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+  .logout-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 20px;
+    background-color: #e74c3c;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    font-weight: 500;
+
+    &:hover {
+      background-color: #c0392b;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    &:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    i {
+      width: 20px;
+      margin-right: 12px;
+      font-size: 1.1rem;
+      text-align: center;
+    }
+
+    span {
+      white-space: nowrap;
+      opacity: 1;
+      transition: opacity 0.3s;
+    }
+  }
+}
+
+// Handle collapsed state for logout button
+.sidebar.collapsed {
+  @media (min-width: 769px) {
+    .logout-section {
+      padding: 1rem 0.5rem;
+
+      .logout-btn {
+        padding: 12px 16px;
+        justify-content: center;
+
+        i {
+          margin-right: 0;
+        }
+
+        span {
+          display: none;
+        }
+      }
+    }
+  }
+}
