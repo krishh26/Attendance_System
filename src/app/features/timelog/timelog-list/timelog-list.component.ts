@@ -14,7 +14,7 @@ import { TimelogService, TimeLogEntry, TimeLogResponse, TimeLogParams } from '..
 export class TimelogListComponent implements OnInit, OnDestroy {
   // Make Math available in template
   Math = Math;
-  
+
   // Data properties
   timeEntries: TimeLogEntry[] = [];
   loading = false;
@@ -158,13 +158,13 @@ export class TimelogListComponent implements OnInit, OnDestroy {
   }
 
   // Filter time entries based on search and status
-  get filteredTimeEntries(): TimeLogEntry[] {
+  get filteredTimeEntries(): TimeLogEntry[] | any[] {
     let filtered = this.timeEntries;
 
     // Apply search filter
     if (this.searchTerm.trim()) {
       const search = this.searchTerm.toLowerCase();
-      filtered = filtered.filter(entry => 
+      filtered = filtered.filter(entry =>
         entry.userId?.toLowerCase().includes(search) ||
         entry.status.toLowerCase().includes(search)
       );
@@ -172,7 +172,7 @@ export class TimelogListComponent implements OnInit, OnDestroy {
 
     // Apply status filter
     if (this.selectedStatus !== 'all') {
-      filtered = filtered.filter(entry => 
+      filtered = filtered.filter(entry =>
         entry.status.toLowerCase() === this.selectedStatus.toLowerCase()
       );
     }
@@ -218,5 +218,49 @@ export class TimelogListComponent implements OnInit, OnDestroy {
       return diffHours.toFixed(1);
     }
     return '--';
+  }
+
+  // Open map with coordinates
+  openMapWithCoordinates(latitude: number, longitude: number, type: 'checkin' | 'checkout'): void {
+    if (latitude && longitude) {
+      // Use Google Maps with coordinates
+      const mapUrl = `https://www.google.com/maps?q=${latitude},${longitude}&z=15&t=m`;
+      window.open(mapUrl, '_blank');
+    }
+  }
+
+  // Check if coordinates are valid
+  hasValidCoordinates(latitude: number, longitude: number): boolean {
+    return latitude != null && longitude != null &&
+           !isNaN(latitude) && !isNaN(longitude) &&
+           latitude !== 0 && longitude !== 0;
+  }
+
+  // Clear search input
+  clearSearch(): void {
+    this.searchTerm = '';
+    this.onSearchChange();
+  }
+
+  // Set date to today
+  setToday(): void {
+    this.selectedDate = this.timelogService.getTodayDate();
+    this.onDateChange();
+  }
+
+  // Clear all filters
+  clearAllFilters(): void {
+    this.searchTerm = '';
+    this.selectedDate = this.timelogService.getTodayDate();
+    this.selectedStatus = 'all';
+    this.currentPage = 1;
+    this.loadTimeLogs();
+  }
+
+  // Check if any filters are active
+  hasActiveFilters(): boolean {
+    return this.searchTerm.trim() !== '' ||
+           this.selectedStatus !== 'all' ||
+           this.selectedDate !== this.timelogService.getTodayDate();
   }
 }

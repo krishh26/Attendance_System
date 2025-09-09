@@ -26,6 +26,14 @@ export class HolidayListComponent implements OnInit, OnDestroy {
   statusFilter: 'all' | 'active' | 'inactive' = 'all';
   optionalFilter: 'all' | 'true' | 'false' = 'all';
 
+  // Summary statistics
+  summaryStats = {
+    totalHolidays: 0,
+    activeHolidays: 0,
+    upcomingHolidays: 0,
+    optionalHolidays: 0
+  };
+
   // Form states
   showAddForm = false;
   showEditForm = false;
@@ -119,6 +127,24 @@ export class HolidayListComponent implements OnInit, OnDestroy {
     }
 
     this.filteredHolidays = filtered;
+    this.updateSummaryStats();
+  }
+
+  // Update summary statistics
+  updateSummaryStats(): void {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    this.summaryStats.totalHolidays = this.holidays.length;
+    this.summaryStats.activeHolidays = this.holidays.filter(holiday => holiday.isActive).length;
+    this.summaryStats.optionalHolidays = this.holidays.filter(holiday => holiday.isOptional).length;
+
+    // Count upcoming holidays (future dates)
+    this.summaryStats.upcomingHolidays = this.holidays.filter(holiday => {
+      const holidayDate = new Date(holiday.date);
+      holidayDate.setHours(0, 0, 0, 0);
+      return holidayDate >= today && holiday.isActive;
+    }).length;
   }
 
   // Search functionality
@@ -307,7 +333,7 @@ export class HolidayListComponent implements OnInit, OnDestroy {
   // Toggle holiday status
   toggleHolidayStatus(holiday: Holiday): void {
     const updateData = { isActive: !holiday.isActive };
-    
+
     this.holidayService.updateHoliday(holiday._id, updateData)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -356,18 +382,38 @@ export class HolidayListComponent implements OnInit, OnDestroy {
     return years;
   }
 
+  // Clear search input
+  clearSearch(): void {
+    this.searchTerm = '';
+    this.applyFilters();
+  }
+
+  // Set current year
+  setCurrentYear(): void {
+    this.yearFilter = new Date().getFullYear();
+    this.onYearChange();
+  }
+
   // Clear all filters
-  clearFilters(): void {
+  clearAllFilters(): void {
     this.searchTerm = '';
     this.statusFilter = 'all';
     this.optionalFilter = 'all';
+    this.yearFilter = new Date().getFullYear();
     this.applyFilters();
   }
 
   // Check if any filters are active
   hasActiveFilters(): boolean {
-    return this.searchTerm !== '' || 
-           this.statusFilter !== 'all' || 
-           this.optionalFilter !== 'all';
+    return this.searchTerm !== '' ||
+           this.statusFilter !== 'all' ||
+           this.optionalFilter !== 'all' ||
+           this.yearFilter !== new Date().getFullYear();
+  }
+
+  // Status filter change
+  onStatusFilterChange(status: 'all' | 'active' | 'inactive'): void {
+    this.statusFilter = status;
+    this.applyFilters();
   }
 }

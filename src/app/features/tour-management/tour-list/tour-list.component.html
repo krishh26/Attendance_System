@@ -16,66 +16,95 @@
     </div>
   </div>
 
-  <!-- Filters Section -->
-  <div class="filters-section">
-    <div class="filter-row">
-      <div class="filter-group">
-        <label for="search">Search:</label>
-        <input
-          type="text"
-          id="search"
-          [(ngModel)]="searchTerm"
-          (input)="onSearch()"
-          placeholder="Search tours..."
-          class="form-control"
-        >
+  <!-- Enhanced Filters -->
+  <div class="filters-container">
+    <div class="filters-header">
+      <h3 class="filters-title">
+        <i class="fas fa-filter"></i>
+        Filters & Search
+      </h3>
+      <button
+        class="btn-clear-filters"
+        (click)="clearAllFilters()"
+        [disabled]="!hasActiveFilters()">
+        <i class="fas fa-times"></i>
+        Clear All
+      </button>
+    </div>
+
+    <div class="filters-content">
+      <!-- Search Section -->
+      <div class="filter-section">
+        <label class="filter-label">
+          <i class="fas fa-search"></i>
+          Search Tours
+        </label>
+        <div class="search-container">
+          <input
+            type="text"
+            placeholder="Type employee, purpose, location or status..."
+            [(ngModel)]="searchTerm"
+            (input)="onSearch()"
+            class="search-input">
+          <button
+            class="btn-clear-search"
+            (click)="clearSearch()"
+            *ngIf="searchTerm"
+            title="Clear search">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
       </div>
 
-      <div class="filter-group">
-        <label for="status">Status:</label>
-        <select
-          id="status"
-          [(ngModel)]="statusFilter"
-          (change)="onFilterChange()"
-          class="form-control"
-        >
-          <option *ngFor="let status of getAvailableStatuses()" [value]="status">
-            {{ getStatusDisplayName(status) }}
-          </option>
-        </select>
+      <!-- Status Filter Section -->
+      <div class="filter-section">
+        <label class="filter-label">
+          <i class="fas fa-toggle-on"></i>
+          Filter by Status
+        </label>
+        <div class="status-filters">
+          <button
+            class="status-chip"
+            *ngFor="let status of getAvailableStatuses()"
+            [class.active]="statusFilter === status"
+            (click)="statusFilter = status; onFilterChange()">
+            <i class="fas" [class.fa-list]="status === 'all'" [class.fa-tag]="status !== 'all'"></i>
+            <span>{{ getStatusDisplayName(status) }}</span>
+          </button>
+        </div>
       </div>
 
-      <div class="filter-group">
-        <label for="startDate">Start Date:</label>
-        <input
-          type="date"
-          id="startDate"
-          [(ngModel)]="startDateFilter"
-          (change)="onFilterChange()"
-          class="form-control"
-        >
-      </div>
-
-      <div class="filter-group">
-        <label for="endDate">End Date:</label>
-        <input
-          type="date"
-          id="endDate"
-          [(ngModel)]="endDateFilter"
-          (change)="onFilterChange()"
-          class="form-control"
-        >
-      </div>
-
-      <div class="filter-group">
-        <button
-          type="button"
-          class="btn btn-outline-secondary"
-          (click)="clearFilters()"
-          [disabled]="!hasActiveFilters()"
-        >
-          <i class="fas fa-times"></i> Clear Filters
-        </button>
+      <!-- Date Range Filter Section -->
+      <div class="filter-section">
+        <label class="filter-label">
+          <i class="fas fa-calendar-alt"></i>
+          Date Range
+        </label>
+        <div class="date-range">
+          <input
+            type="date"
+            [(ngModel)]="startDateFilter"
+            (change)="onFilterChange()"
+            class="date-input"
+            placeholder="Start date">
+          <span class="date-sep">to</span>
+          <input
+            type="date"
+            [(ngModel)]="endDateFilter"
+            (change)="onFilterChange()"
+            class="date-input"
+            placeholder="End date">
+          <div class="date-actions">
+            <button class="btn-quick" (click)="setTodayRange()" title="Today">
+              <i class="fas fa-calendar-day"></i>
+              Today
+            </button>
+            <button class="btn-quick" (click)="clearDateRange()" title="Clear range">
+              <i class="fas fa-eraser"></i>
+              Clear
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>

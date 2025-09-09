@@ -321,4 +321,29 @@ export class RolesListComponent implements OnInit, OnDestroy {
     this.showDeleteModal = false;
     this.selectedRole = undefined;
   }
+
+  // Clear search input
+  clearSearch(): void {
+    this.searchTerm = '';
+    this.searchSubject.next('');
+  }
+
+  // Clear all filters
+  clearAllFilters(): void {
+    this.searchTerm = '';
+    this.statusFilter = 'all';
+    this.currentPage = 1;
+    this.searchSubject.next('');
+  }
+
+  // Check if any filters are active
+  hasActiveFilters(): boolean {
+    return this.searchTerm.trim() !== '' || this.statusFilter !== 'all';
+  }
+
+  // Toggle sort order
+  toggleSort(): void {
+    this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+    this.loadRoles();
+  }
 }

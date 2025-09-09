@@ -55,43 +55,104 @@
       </button>
     </div>
 
-    <!-- Filters -->
-    <div class="filters">
-      <div class="search-box">
-        <i class="fas fa-search"></i>
-        <input
-          type="text"
-          placeholder="Search roles..."
-          [value]="searchTerm"
-          (input)="onSearchChange($event)">
-      </div>
-
-      <div class="filter-buttons">
+    <!-- Enhanced Filters -->
+    <div class="filters-container">
+      <div class="filters-header">
+        <h3 class="filters-title">
+          <i class="fas fa-filter"></i>
+          Filters & Search
+        </h3>
         <button
-          class="btn-filter"
-          [class.active]="statusFilter === 'all'"
-          (click)="onStatusFilterChange('all')">
-          All
-        </button>
-        <button
-          class="btn-filter"
-          [class.active]="statusFilter === 'active'"
-          (click)="onStatusFilterChange('active')">
-          Active
-        </button>
-        <button
-          class="btn-filter"
-          [class.active]="statusFilter === 'inactive'"
-          (click)="onStatusFilterChange('inactive')">
-          Inactive
+          class="btn-clear-filters"
+          (click)="clearAllFilters()"
+          [disabled]="!hasActiveFilters()">
+          <i class="fas fa-times"></i>
+          Clear All
         </button>
       </div>
 
-      <div class="actions">
-        <button class="btn-refresh" (click)="refreshRoles()" [disabled]="loading">
-          <i class="fas fa-sync-alt" [class.fa-spin]="loading"></i>
-          Refresh
-        </button>
+      <div class="filters-content">
+        <!-- Search Section -->
+        <div class="filter-section">
+          <label class="filter-label">
+            <i class="fas fa-search"></i>
+            Search Roles
+          </label>
+          <div class="search-container">
+            <input
+              type="text"
+              placeholder="Type role name or description..."
+              [value]="searchTerm"
+              (input)="onSearchChange($event)"
+              class="search-input">
+            <button
+              class="btn-clear-search"
+              (click)="clearSearch()"
+              *ngIf="searchTerm"
+              title="Clear search">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Status Filter Section -->
+        <div class="filter-section">
+          <label class="filter-label">
+            <i class="fas fa-toggle-on"></i>
+            Filter by Status
+          </label>
+          <div class="status-filters">
+            <button
+              class="status-chip"
+              [class.active]="statusFilter === 'all'"
+              (click)="onStatusFilterChange('all')">
+              <i class="fas fa-list"></i>
+              <span>All</span>
+              <span class="count" *ngIf="summaryStats.totalRoles > 0">{{ summaryStats.totalRoles }}</span>
+            </button>
+            <button
+              class="status-chip active"
+              [class.active]="statusFilter === 'active'"
+              (click)="onStatusFilterChange('active')">
+              <i class="fas fa-check-circle"></i>
+              <span>Active</span>
+              <span class="count" *ngIf="summaryStats.activeRoles > 0">{{ summaryStats.activeRoles }}</span>
+            </button>
+            <button
+              class="status-chip inactive"
+              [class.active]="statusFilter === 'inactive'"
+              (click)="onStatusFilterChange('inactive')">
+              <i class="fas fa-times-circle"></i>
+              <span>Inactive</span>
+              <span class="count" *ngIf="(summaryStats.totalRoles - summaryStats.activeRoles) > 0">{{ summaryStats.totalRoles - summaryStats.activeRoles }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Actions Section -->
+        <div class="filter-section">
+          <label class="filter-label">
+            <i class="fas fa-cog"></i>
+            Actions
+          </label>
+          <div class="actions-container">
+            <button
+              class="btn-refresh"
+              (click)="refreshRoles()"
+              [disabled]="loading"
+              title="Refresh roles">
+              <i class="fas fa-sync-alt" [class.fa-spin]="loading"></i>
+              <span>Refresh</span>
+            </button>
+            <button
+              class="btn-sort"
+              (click)="toggleSort()"
+              title="Toggle sort order">
+              <i class="fas" [class.fa-sort-alpha-down]="sortOrder === 'asc'" [class.fa-sort-alpha-up]="sortOrder === 'desc'"></i>
+              <span>Sort</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -117,57 +178,87 @@
 
     <!-- Roles Cards -->
     <div class="roles-grid" *ngIf="!loading && !error && roles.length > 0">
-      <div class="role-card" *ngFor="let role of roles">
+      <div class="role-card" *ngFor="let role of roles" [class.inactive]="!role.isActive">
         <div class="role-header">
           <div class="role-title">
-            <h3>{{ role.name }}</h3>
-            <span class="status-badge" [class.active]="role.isActive">
-              {{ role.isActive ? 'Active' : 'Inactive' }}
-            </span>
+            <div class="role-name">
+              <h3>{{ role.name }}</h3>
+              <span class="status-badge" [class.active]="role.isActive">
+                <i class="fas" [class.fa-check-circle]="role.isActive" [class.fa-times-circle]="!role.isActive"></i>
+                {{ role.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </div>
+            <p class="role-description">{{ role.description || 'No description provided' }}</p>
           </div>
           <div class="role-actions">
             <button
-              class="btn-icon"
+              class="btn-action edit"
               title="Edit Role"
               *ngIf="canUpdateRole()"
               (click)="openEditRoleModal(role)">
               <i class="fas fa-edit"></i>
             </button>
             <button
-              class="btn-icon"
-              title="Delete Role"
-              *ngIf="canDeleteRole()"
-              (click)="openDeleteRoleModal(role)">
-              <i class="fas fa-trash"></i>
-            </button>
-            <button
-              class="btn-icon"
+              class="btn-action view"
               title="View Details"
               *ngIf="canViewRoleDetails()"
               (click)="viewRoleDetails(role._id)">
               <i class="fas fa-eye"></i>
             </button>
+            <button
+              class="btn-action delete"
+              title="Delete Role"
+              *ngIf="canDeleteRole()"
+              (click)="openDeleteRoleModal(role)">
+              <i class="fas fa-trash"></i>
+            </button>
           </div>
         </div>
 
-        <p class="role-description">{{ role.description }}</p>
-
         <div class="role-stats">
           <div class="stat">
-            <i class="fas fa-key"></i>
-            <span>{{ getTotalActions(role.permissions) }} Actions</span>
+            <div class="stat-icon">
+              <i class="fas fa-key"></i>
+            </div>
+            <div class="stat-content">
+              <span class="stat-value">{{ getTotalActions(role.permissions) }}</span>
+              <span class="stat-label">Actions</span>
+            </div>
           </div>
           <div class="stat">
-            <i class="fas fa-calendar-alt"></i>
-            <span>Created: {{ role.createdAt | date:'shortDate' }}</span>
+            <div class="stat-icon">
+              <i class="fas fa-calendar-alt"></i>
+            </div>
+            <div class="stat-content">
+              <span class="stat-value">{{ role.createdAt | date:'MMM dd' }}</span>
+              <span class="stat-label">Created</span>
+            </div>
+          </div>
+          <div class="stat">
+            <div class="stat-icon">
+              <i class="fas fa-layer-group"></i>
+            </div>
+            <div class="stat-content">
+              <span class="stat-value">{{ getPermissionGroups(role?.permissions || [])['length'] }}</span>
+              <span class="stat-label">Modules</span>
+            </div>
           </div>
         </div>
 
         <div class="permissions-section">
-          <h4>Permissions</h4>
+          <div class="section-header">
+            <h4>
+              <i class="fas fa-shield-alt"></i>
+              Permissions
+            </h4>
+            <span class="permission-count">{{ getTotalActions(role.permissions) }} total</span>
+          </div>
           <div class="permissions-list">
             <div class="module-permissions" *ngFor="let module of getPermissionGroups(role?.permissions || []) | keyvalue">
-              <div class="module-name">{{ module.key | titlecase }}</div>
+              <div class="module-header">
+                <span class="module-name">{{ module.key | titlecase }}</span>
+                <span class="module-count">{{ module.value[0].actions.length }} actions</span>
+              </div>
               <div class="permission-chips">
                 <span class="permission-chip" *ngFor="let action of module.value[0].actions">
                   {{ action | titlecase }}

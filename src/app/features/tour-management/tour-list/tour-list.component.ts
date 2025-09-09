@@ -164,6 +164,39 @@ export class TourListComponent implements OnInit, OnDestroy {
     this.loadTours();
   }
 
+  // Enhanced filters helpers
+  clearSearch(): void {
+    this.searchTerm = '';
+    this.applySearchFilter();
+  }
+
+  setTodayRange(): void {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const iso = `${yyyy}-${mm}-${dd}`;
+    this.startDateFilter = iso;
+    this.endDateFilter = iso;
+    this.onFilterChange();
+  }
+
+  clearDateRange(): void {
+    this.startDateFilter = '';
+    this.endDateFilter = '';
+    this.onFilterChange();
+  }
+
+  clearAllFilters(): void {
+    this.searchTerm = '';
+    this.statusFilter = 'all';
+    this.assignedToFilter = '';
+    this.startDateFilter = '';
+    this.endDateFilter = '';
+    this.currentPage = 1;
+    this.loadTours();
+  }
+
   // Check if any filters are active
   hasActiveFilters(): boolean {
     return this.searchTerm !== '' ||

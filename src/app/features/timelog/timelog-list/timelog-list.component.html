@@ -58,52 +58,110 @@
       {{ error }}
     </div>
 
-    <!-- Filters -->
-    <div class="filters">
-      <div class="search-box">
-        <i class="fas fa-search"></i>
-        <input 
-          type="text" 
-          placeholder="Search employee..." 
-          [(ngModel)]="searchTerm"
-          (input)="onSearchChange()">
+    <!-- Enhanced Filters -->
+    <div class="filters-container">
+      <div class="filters-header">
+        <h3 class="filters-title">
+          <i class="fas fa-filter"></i>
+          Filters
+        </h3>
+        <button
+          class="btn-clear-filters"
+          (click)="clearAllFilters()"
+          [disabled]="!hasActiveFilters()">
+          <i class="fas fa-times"></i>
+          Clear All
+        </button>
       </div>
 
-      <div class="date-filter">
-        <label for="dateFilter">Date:</label>
-        <input 
-          type="date" 
-          id="dateFilter"
-          class="form-control" 
-          [(ngModel)]="selectedDate"
-          (change)="onDateChange()">
-      </div>
+      <div class="filters-content">
+        <!-- Search Section -->
+        <div class="filter-section">
+          <label class="filter-label">
+            <i class="fas fa-search"></i>
+            Search Employee
+          </label>
+          <div class="search-container">
+            <input
+              type="text"
+              placeholder="Type employee name or ID..."
+              [(ngModel)]="searchTerm"
+              (input)="onSearchChange()"
+              class="search-input">
+            <button
+              class="btn-clear-search"
+              (click)="clearSearch()"
+              *ngIf="searchTerm"
+              title="Clear search">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
 
-      <div class="filter-buttons">
-        <button 
-          class="btn-filter" 
-          [class.active]="selectedStatus === 'all'"
-          (click)="selectedStatus = 'all'; onStatusChange()">
-          All
-        </button>
-        <button 
-          class="btn-filter" 
-          [class.active]="selectedStatus === 'present'"
-          (click)="selectedStatus = 'present'; onStatusChange()">
-          Present
-        </button>
-        <button 
-          class="btn-filter" 
-          [class.active]="selectedStatus === 'late'"
-          (click)="selectedStatus = 'late'; onStatusChange()">
-          Late
-        </button>
-        <button 
-          class="btn-filter" 
-          [class.active]="selectedStatus === 'absent'"
-          (click)="selectedStatus = 'absent'; onStatusChange()">
-          Absent
-        </button>
+        <!-- Date Filter Section -->
+        <div class="filter-section">
+          <label class="filter-label">
+            <i class="fas fa-calendar-alt"></i>
+            Select Date
+          </label>
+          <div class="date-container">
+            <input
+              type="date"
+              id="dateFilter"
+              [(ngModel)]="selectedDate"
+              (change)="onDateChange()"
+              class="date-input">
+            <button
+              class="btn-today"
+              (click)="setToday()"
+              title="Set to today">
+              <i class="fas fa-calendar-day"></i>
+              Today
+            </button>
+          </div>
+        </div>
+
+        <!-- Status Filter Section -->
+        <div class="filter-section">
+          <label class="filter-label">
+            <i class="fas fa-user-check"></i>
+            Filter by Status
+          </label>
+          <div class="status-filters">
+            <button
+              class="status-chip"
+              [class.active]="selectedStatus === 'all'"
+              (click)="selectedStatus = 'all'; onStatusChange()">
+              <i class="fas fa-users"></i>
+              <span>All</span>
+              <span class="count" *ngIf="summaryStats.totalEmployees > 0">{{ summaryStats.totalEmployees }}</span>
+            </button>
+            <button
+              class="status-chip present"
+              [class.active]="selectedStatus === 'present'"
+              (click)="selectedStatus = 'present'; onStatusChange()">
+              <i class="fas fa-user-check"></i>
+              <span>Present</span>
+              <span class="count" *ngIf="summaryStats.presentToday > 0">{{ summaryStats.presentToday }}</span>
+            </button>
+            <button
+              class="status-chip late"
+              [class.active]="selectedStatus === 'late'"
+              (click)="selectedStatus = 'late'; onStatusChange()">
+              <i class="fas fa-user-clock"></i>
+              <span>Late</span>
+              <span class="count" *ngIf="summaryStats.lateToday > 0">{{ summaryStats.lateToday }}</span>
+            </button>
+            <button
+              class="status-chip absent"
+              [class.active]="selectedStatus === 'absent'"
+              (click)="selectedStatus = 'absent'; onStatusChange()">
+              <i class="fas fa-user-times"></i>
+              <span>Absent</span>
+              <span class="count" *ngIf="summaryStats.absentToday > 0">{{ summaryStats.absentToday }}</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -124,6 +182,8 @@
             <th>Check Out Time</th>
             <th>Total Hours</th>
             <th>Status</th>
+            <th>Check In Location</th>
+            <th>Check Out Location</th>
             <!-- <th>Session</th> -->
             <!-- <th>Actions</th> -->
           </tr>
@@ -146,6 +206,34 @@
               <span class="status-badge" [ngClass]="getStatusClass(entry.status)">
                 {{ getStatusText(entry.status) }}
               </span>
+            </td>
+            <td>
+              <div class="location-cell">
+                <span *ngIf="hasValidCoordinates(entry.checkInLatitude, entry.checkInLongitude); else noLocationCheckIn">
+                  <i class="fas fa-map-marker-alt location-icon"
+                     (click)="openMapWithCoordinates(entry.checkInLatitude, entry.checkInLongitude, 'checkin')"
+                     title="Click to view on map">
+                  </i>
+                  <span class="coordinates">{{ entry.checkInLatitude | number:'1.4-4' }}, {{ entry.checkInLongitude | number:'1.4-4' }}</span>
+                </span>
+                <ng-template #noLocationCheckIn>
+                  <span class="no-location">No location data</span>
+                </ng-template>
+              </div>
+            </td>
+            <td>
+              <div class="location-cell">
+                <span *ngIf="hasValidCoordinates(entry.checkOutLatitude, entry.checkOutLongitude); else noLocationCheckOut">
+                  <i class="fas fa-map-marker-alt location-icon"
+                     (click)="openMapWithCoordinates(entry.checkOutLatitude, entry.checkOutLongitude, 'checkout')"
+                     title="Click to view on map">
+                  </i>
+                  <span class="coordinates">{{ entry.checkOutLatitude | number:'1.4-4' }}, {{ entry.checkOutLongitude | number:'1.4-4' }}</span>
+                </span>
+                <ng-template #noLocationCheckOut>
+                  <span class="no-location">No location data</span>
+                </ng-template>
+              </div>
             </td>
             <!-- <td>{{ entry.sessionNumber }}</td> -->
             <!-- <td class="actions">
@@ -173,23 +261,23 @@
 
     <!-- Pagination -->
     <div *ngIf="totalPages > 1 && !loading" class="pagination">
-      <button 
-        class="btn-page" 
+      <button
+        class="btn-page"
         [disabled]="currentPage === 1"
         (click)="onPageChange(currentPage - 1)">
         <i class="fas fa-chevron-left"></i>
       </button>
 
-      <button 
+      <button
         *ngFor="let page of pages"
-        class="btn-page" 
+        class="btn-page"
         [class.active]="page === currentPage"
         (click)="onPageChange(page)">
         {{ page }}
       </button>
 
-      <button 
-        class="btn-page" 
+      <button
+        class="btn-page"
         [disabled]="currentPage === totalPages"
         (click)="onPageChange(currentPage + 1)">
         <i class="fas fa-chevron-right"></i>

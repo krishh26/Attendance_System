@@ -1,84 +1,155 @@
 <div class="holiday-management-container">
-  <!-- Header -->
-  <div class="header">
-    <div class="title-section">
-      <h1><i class="fas fa-calendar-day"></i> Holiday Management</h1>
-      <p>Manage company holidays and public holidays</p>
+  <!-- Summary Cards -->
+  <div class="summary-cards">
+    <div class="summary-card">
+      <div class="card-icon">
+        <i class="fas fa-calendar-day"></i>
+      </div>
+      <div class="card-content">
+        <h3>Total Holidays</h3>
+        <p>{{ summaryStats.totalHolidays }}</p>
+      </div>
     </div>
-    <div class="actions">
-      <button class="btn btn-primary" (click)="showAddHolidayForm()">
-        <i class="fas fa-plus"></i> Add Holiday
+
+    <div class="summary-card">
+      <div class="card-icon active">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <div class="card-content">
+        <h3>Active Holidays</h3>
+        <p>{{ summaryStats.activeHolidays }}</p>
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="card-icon upcoming">
+        <i class="fas fa-calendar-check"></i>
+      </div>
+      <div class="card-content">
+        <h3>Upcoming</h3>
+        <p>{{ summaryStats.upcomingHolidays }}</p>
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="card-icon optional">
+        <i class="fas fa-calendar-plus"></i>
+      </div>
+      <div class="card-content">
+        <h3>Optional</h3>
+        <p>{{ summaryStats.optionalHolidays }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="content-section">
+    <div class="header">
+      <h1>Holiday Management</h1>
+      <button class="btn-add" (click)="showAddHolidayForm()">
+        <i class="fas fa-plus"></i>
+        Add Holiday
       </button>
     </div>
-  </div>
 
-  <!-- Filters Section -->
-  <div class="filters-section">
-    <div class="filter-row">
-      <div class="filter-group">
-        <label for="search">Search:</label>
-        <input 
-          type="text" 
-          id="search" 
-          [(ngModel)]="searchTerm" 
-          (input)="onSearch()"
-          placeholder="Search holidays..."
-          class="form-control"
-        >
-      </div>
-
-      <div class="filter-group">
-        <label for="year">Year:</label>
-        <select 
-          id="year" 
-          [(ngModel)]="yearFilter" 
-          (change)="onYearChange()"
-          class="form-control"
-        >
-          <option *ngFor="let year of getYearOptions()" [value]="year">{{ year }}</option>
-        </select>
-      </div>
-
-      <div class="filter-group">
-        <label for="status">Status:</label>
-        <select 
-          id="status" 
-          [(ngModel)]="statusFilter" 
-          (change)="onFilterChange()"
-          class="form-control"
-        >
-          <option value="all">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
-      </div>
-
-      <!-- <div class="filter-group">
-        <label for="optional">Type:</label>
-        <select 
-          id="optional" 
-          [(ngModel)]="optionalFilter" 
-          (change)="onFilterChange()"
-          class="form-control"
-        >
-          <option value="all">All Types</option>
-          <option value="false">Mandatory</option>
-          <option value="true">Optional</option>
-        </select>
-      </div> -->
-
-      <!-- <div class="filter-group">
-        <button 
-          type="button" 
-          class="btn btn-outline-secondary" 
-          (click)="clearFilters()"
-          [disabled]="!hasActiveFilters()"
-        >
-          <i class="fas fa-times"></i> Clear Filters
+    <!-- Enhanced Filters -->
+    <div class="filters-container">
+      <div class="filters-header">
+        <h3 class="filters-title">
+          <i class="fas fa-filter"></i>
+          Filters & Search
+        </h3>
+        <button
+          class="btn-clear-filters"
+          (click)="clearAllFilters()"
+          [disabled]="!hasActiveFilters()">
+          <i class="fas fa-times"></i>
+          Clear All
         </button>
-      </div> -->
+      </div>
+
+      <div class="filters-content">
+        <!-- Search Section -->
+        <div class="filter-section">
+          <label class="filter-label">
+            <i class="fas fa-search"></i>
+            Search Holidays
+          </label>
+          <div class="search-container">
+            <input
+              type="text"
+              placeholder="Type holiday name or description..."
+              [(ngModel)]="searchTerm"
+              (input)="onSearch()"
+              class="search-input">
+            <button
+              class="btn-clear-search"
+              (click)="clearSearch()"
+              *ngIf="searchTerm"
+              title="Clear search">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Year Filter Section -->
+        <div class="filter-section">
+          <label class="filter-label">
+            <i class="fas fa-calendar-alt"></i>
+            Select Year
+          </label>
+          <div class="year-container">
+            <select
+              [(ngModel)]="yearFilter"
+              (change)="onYearChange()"
+              class="year-select">
+              <option *ngFor="let year of getYearOptions()" [value]="year">{{ year }}</option>
+            </select>
+            <button
+              class="btn-current-year"
+              (click)="setCurrentYear()"
+              title="Set to current year">
+              <i class="fas fa-calendar-day"></i>
+              Current
+            </button>
+          </div>
+        </div>
+
+        <!-- Status Filter Section -->
+        <div class="filter-section">
+          <label class="filter-label">
+            <i class="fas fa-toggle-on"></i>
+            Filter by Status
+          </label>
+          <div class="status-filters">
+            <button
+              class="status-chip"
+              [class.active]="statusFilter === 'all'"
+              (click)="onStatusFilterChange('all')">
+              <i class="fas fa-list"></i>
+              <span>All</span>
+              <span class="count" *ngIf="summaryStats.totalHolidays > 0">{{ summaryStats.totalHolidays }}</span>
+            </button>
+            <button
+              class="status-chip active"
+              [class.active]="statusFilter === 'active'"
+              (click)="onStatusFilterChange('active')">
+              <i class="fas fa-check-circle"></i>
+              <span>Active</span>
+              <span class="count" *ngIf="summaryStats.activeHolidays > 0">{{ summaryStats.activeHolidays }}</span>
+            </button>
+            <button
+              class="status-chip inactive"
+              [class.active]="statusFilter === 'inactive'"
+              (click)="onStatusFilterChange('inactive')">
+              <i class="fas fa-times-circle"></i>
+              <span>Inactive</span>
+              <span class="count" *ngIf="(summaryStats.totalHolidays - summaryStats.activeHolidays) > 0">{{ summaryStats.totalHolidays - summaryStats.activeHolidays }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
 
   <!-- Error Display -->
   <div *ngIf="error" class="alert alert-danger">
@@ -113,7 +184,7 @@
         </span>
       </p>
     </div>
-    
+
     <div *ngIf="filteredHolidays.length === 0" class="no-data">
       <i class="fas fa-calendar-times"></i>
       <h3 *ngIf="holidays.length === 0">No holidays found</h3>
@@ -149,22 +220,22 @@
             </span>
           </td>
           <td class="holiday-actions">
-            <button 
-              class="btn btn-sm btn-outline-primary" 
+            <button
+              class="btn btn-sm btn-outline-primary"
               (click)="showEditHolidayForm(holiday)"
               title="Edit Holiday"
             >
               <i class="fas fa-edit"></i>
             </button>
-            <button 
-              class="btn btn-sm btn-outline-success" 
+            <button
+              class="btn btn-sm btn-outline-success"
               (click)="toggleHolidayStatus(holiday)"
               [title]="holiday.isActive ? 'Deactivate' : 'Activate'"
             >
               <i [class]="holiday.isActive ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
             </button>
-            <button 
-              class="btn btn-sm btn-outline-danger" 
+            <button
+              class="btn btn-sm btn-outline-danger"
               (click)="showDeleteConfirmation(holiday)"
               title="Delete Holiday"
             >
@@ -189,12 +260,12 @@
       <form (ngSubmit)="onSubmit()" class="holiday-form">
         <div class="form-group">
           <label for="holidayName">Holiday Name *</label>
-          <input 
-            type="text" 
-            id="holidayName" 
-            [(ngModel)]="holidayForm.name" 
+          <input
+            type="text"
+            id="holidayName"
+            [(ngModel)]="holidayForm.name"
             name="name"
-            class="form-control" 
+            class="form-control"
             placeholder="Enter holiday name"
             required
           >
@@ -202,23 +273,23 @@
 
         <div class="form-group">
           <label for="holidayDate">Date *</label>
-          <input 
-            type="date" 
-            id="holidayDate" 
-            [(ngModel)]="holidayForm.date" 
+          <input
+            type="date"
+            id="holidayDate"
+            [(ngModel)]="holidayForm.date"
             name="date"
-            class="form-control" 
+            class="form-control"
             required
           >
         </div>
 
         <div class="form-group">
           <label for="holidayDescription">Description *</label>
-          <textarea 
-            id="holidayDescription" 
-            [(ngModel)]="holidayForm.description" 
+          <textarea
+            id="holidayDescription"
+            [(ngModel)]="holidayForm.description"
             name="description"
-            class="form-control" 
+            class="form-control"
             rows="3"
             placeholder="Enter holiday description"
             required
@@ -228,9 +299,9 @@
         <div class="form-row">
           <div class="form-group">
             <label class="checkbox-label">
-              <input 
-                type="checkbox" 
-                [(ngModel)]="holidayForm.isActive" 
+              <input
+                type="checkbox"
+                [(ngModel)]="holidayForm.isActive"
                 name="isActive"
               >
               <span class="checkmark"></span>
@@ -240,9 +311,9 @@
 
           <div class="form-group">
             <label class="checkbox-label">
-              <input 
-                type="checkbox" 
-                [(ngModel)]="holidayForm.isOptional" 
+              <input
+                type="checkbox"
+                [(ngModel)]="holidayForm.isOptional"
                 name="isOptional"
               >
               <span class="checkmark"></span>

@@ -1,7 +1,7 @@
 <div class="login-container">
   <div class="login-card">
     <h2>Login Test</h2>
-    
+
     <!-- Error Message -->
     <div class="alert alert-danger" *ngIf="errorMessage">
       {{ errorMessage }}
@@ -23,7 +23,7 @@
           {{ getErrorMessage('email') }}
         </div>
       </div>
-      
+
       <div class="form-group">
         <label for="password">Password</label>
         <input
@@ -39,14 +39,14 @@
           {{ getErrorMessage('password') }}
         </div>
       </div>
-      
+
       <div class="form-links" style="cursor: pointer;">
         <a (click)="forgotPassword()" class="forgot-password-link">Forgot Password?</a>
       </div>
 
-      <button 
-        type="submit" 
-        [disabled]="!loginForm.valid || isLoading" 
+      <button
+        type="submit"
+        [disabled]="!loginForm.valid || isLoading"
         class="btn-login"
       >
         <span *ngIf="!isLoading">Login</span>
@@ -57,7 +57,7 @@
       <div class="demo-info">
         <p><strong>Demo Credentials:</strong></p>
         <p>Email: john.doe&#64;example.com</p>
-        <p>Password: password123</p>
+        <p>Password: newpassword123</p>
       </div>
     </form>
   </div>

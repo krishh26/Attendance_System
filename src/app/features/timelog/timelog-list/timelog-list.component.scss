@@ -150,68 +150,273 @@
   }
 }
 
-.filters {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
+// Enhanced Filters Container
+.filters-container {
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
 
-  .search-box {
-    position: relative;
-    flex: 1;
-    min-width: 200px;
+.filters-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+
+  .filters-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 
     i {
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      transform: translateY(-50%);
+      font-size: 1rem;
+    }
+  }
+
+  .btn-clear-filters {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.filters-content {
+  padding: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.filter-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .filter-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+
+    i {
+      color: #007bff;
+      font-size: 0.85rem;
+    }
+  }
+}
+
+// Search Container
+.search-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  .search-input {
+    width: 100%;
+    padding: 10px 40px 10px 12px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    background: white;
+
+    &:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+
+    &::placeholder {
       color: #6c757d;
     }
+  }
 
-    input {
-      width: 100%;
-      padding: 8px 12px 8px 36px;
-      border: 1px solid #dee2e6;
-      border-radius: 4px;
+  .btn-clear-search {
+    position: absolute;
+    right: 8px;
+    background: none;
+    border: none;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      color: #dc3545;
+      background: #f8f9fa;
+    }
+  }
+}
+
+// Date Container
+.date-container {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+
+  .date-input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    background: white;
+
+    &:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
     }
   }
 
-  .date-filter {
+  .btn-today {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
 
-    label {
-      font-size: 0.85rem;
-      color: #495057;
-      font-weight: 500;
+    &:hover {
+      background: #218838;
+      transform: translateY(-1px);
     }
+  }
+}
 
-    input {
-      padding: 8px 12px;
-      border: 1px solid #dee2e6;
-      border-radius: 4px;
+// Status Filters
+.status-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.status-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 2px solid #e9ecef;
+  background: white;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
+  font-weight: 500;
+  position: relative;
+  overflow: hidden;
+
+  i {
+    font-size: 0.9rem;
+  }
+
+  .count {
+    background: #6c757d;
+    color: white;
+    border-radius: 10px;
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    min-width: 18px;
+    text-align: center;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  &.active {
+    border-color: #007bff;
+    background: #007bff;
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+
+    .count {
+      background: rgba(255, 255, 255, 0.2);
     }
   }
 
-  .filter-buttons {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
+  // Status-specific colors
+  &.present {
+    border-color: #28a745;
+    color: #28a745;
 
-    .btn-filter {
-      padding: 8px 16px;
-      border: 1px solid #dee2e6;
-      background: white;
-      border-radius: 4px;
-      cursor: pointer;
+    &.active {
+      background: #28a745;
+      border-color: #28a745;
+    }
 
-      &.active {
-        background-color: #007bff;
-        color: white;
-        border-color: #007bff;
-      }
+    .count {
+      background: #28a745;
+    }
+  }
+
+  &.late {
+    border-color: #ffc107;
+    color: #e0a800;
+
+    &.active {
+      background: #ffc107;
+      border-color: #ffc107;
+      color: #212529;
+    }
+
+    .count {
+      background: #ffc107;
+      color: #212529;
+    }
+  }
+
+  &.absent {
+    border-color: #dc3545;
+    color: #dc3545;
+
+    &.active {
+      background: #dc3545;
+      border-color: #dc3545;
+    }
+
+    .count {
+      background: #dc3545;
     }
   }
 }
@@ -369,17 +574,138 @@
   font-size: 0.9rem;
 }
 
+// Location Cell Styling
+.location-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 150px;
+
+  .location-icon {
+    color: #dc3545;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 4px;
+    border-radius: 4px;
+
+    &:hover {
+      color: #a71e2a;
+      background-color: #f8f9fa;
+      transform: scale(1.1);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+
+  .coordinates {
+    font-size: 0.85rem;
+    color: #495057;
+    font-family: 'Courier New', monospace;
+    background-color: #f8f9fa;
+    padding: 2px 6px;
+    border-radius: 3px;
+    border: 1px solid #e9ecef;
+  }
+
+  .no-location {
+    color: #6c757d;
+    font-style: italic;
+    font-size: 0.85rem;
+  }
+}
+
+// Responsive Design
+@media (max-width: 1024px) {
+  .filters-content {
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+}
+
 @media (max-width: 768px) {
-  .filters {
+  .filters-content {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .filters-header {
+    padding: 12px 16px;
+
+    .filters-title {
+      font-size: 1rem;
+    }
+
+    .btn-clear-filters {
+      padding: 4px 8px;
+      font-size: 0.8rem;
+    }
+  }
+
+  .filter-section {
+    .filter-label {
+      font-size: 0.85rem;
+    }
+  }
+
+  .date-container {
     flex-direction: column;
+    align-items: stretch;
 
-    .search-box {
-      min-width: 100%;
+    .btn-today {
+      justify-content: center;
+      margin-top: 8px;
     }
+  }
 
-    .filter-buttons {
-      overflow-x: auto;
-      padding-bottom: 4px;
+  .status-filters {
+    justify-content: center;
+  }
+
+  .status-chip {
+    flex: 1;
+    min-width: 0;
+    justify-content: center;
+    font-size: 0.8rem;
+    padding: 6px 10px;
+
+    .count {
+      font-size: 0.7rem;
+      padding: 1px 4px;
     }
+  }
+}
+
+@media (max-width: 480px) {
+  .filters-container {
+    margin: 0 -10px 20px;
+    border-radius: 0;
+  }
+
+  .filters-header {
+    padding: 10px 12px;
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+
+    .filters-title {
+      font-size: 0.95rem;
+    }
+  }
+
+  .filters-content {
+    padding: 16px 12px;
+  }
+
+  .status-filters {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .status-chip {
+    width: 100%;
+    justify-content: flex-start;
   }
 }
