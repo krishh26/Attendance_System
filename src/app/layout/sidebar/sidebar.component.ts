@@ -60,13 +60,13 @@ export class SidebarComponent implements OnInit, OnDestroy {
       icon: 'fas fa-user-shield',
       route: '/admin/roles/list',
       permission: 'roles:list',
-      submenu: [
-        {
-          title: 'Roles',
-          route: '/admin/roles/list',
-          permission: 'roles:list'
-        }
-      ]
+      // submenu: [
+      //   {
+      //     title: 'Roles',
+      //     route: '/admin/roles/list',
+      //     permission: 'roles:list'
+      //   }
+      // ]
     },
     {
       title: 'Holidays',
@@ -79,6 +79,13 @@ export class SidebarComponent implements OnInit, OnDestroy {
       icon: 'fas fa-map-marked-alt',
       route: '/admin/tour/list',
       permission: 'tour:list'
+    }
+    ,
+    {
+      title: 'Audit Logs',
+      icon: 'fas fa-clipboard-list',
+      route: '/admin/logs',
+      permission: 'audit:list'
     }
   ];
 
