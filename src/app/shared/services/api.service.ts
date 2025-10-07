@@ -8,10 +8,10 @@ import { environment } from '../../../environments/environment';
   providedIn: 'root'
 })
 export class ApiService {
-  private baseUrl = environment.apiBaseUrl;
+  public baseUrl = environment.apiBaseUrl;
 
   constructor(
-    private http: HttpClient
+    public http: HttpClient
   ) {}
 
   private getHeaders(): HttpHeaders {
@@ -54,5 +54,13 @@ export class ApiService {
     const url = `${this.baseUrl}${endpoint}`;
     console.log(`Making PATCH request to: ${url}`, data);
     return this.http.patch<T>(url, data, { headers: this.getHeaders() });
+  }
+
+  // Multipart POST (for file uploads)
+  postForm<T>(endpoint: string, formData: FormData): Observable<T> {
+    const url = `${this.baseUrl}${endpoint}`;
+    // Let the browser set the multipart boundary automatically
+    const headers = new HttpHeaders();
+    return this.http.post<T>(url, formData, { headers });
   }
 }

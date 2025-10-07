@@ -38,9 +38,16 @@ export class UserListComponent implements OnInit, OnDestroy {
   showUserModal = false;
   showDeleteModal = false;
   showLogsModal = false;
+  showStatusModal = false;
+  showImportModal = false;
   selectedUser: User | null = null;
   deleteLoading = false;
+  statusLoading = false;
+  nextActiveState: boolean | null = null;
   userLogs: AuditLog[] = [];
+  selectedFile: File | null = null;
+  importing = false;
+  importSummary: any = null;
 
   private destroy$ = new Subject<void>();
   private searchSubject = new Subject<string>();
@@ -78,6 +85,62 @@ export class UserListComponent implements OnInit, OnDestroy {
 
   closeLogsModal(): void {
     this.showLogsModal = false;
+  }
+
+  // Import modal handlers
+  openImportModal(): void {
+    this.showImportModal = true;
+    this.selectedFile = null;
+    this.importSummary = null;
+  }
+
+  closeImportModal(): void {
+    this.showImportModal = false;
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.selectedFile = (input.files && input.files[0]) ? input.files[0] : null;
+  }
+
+  startImport(): void {
+    if (!this.selectedFile) return;
+    this.importing = true;
+    this.importSummary = null;
+    this.userService.importUsers(this.selectedFile)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (res: any) => {
+          this.importing = false;
+          this.importSummary = res.data?.data || res;
+          this.closeImportModal();
+          this.refreshUsers();
+        },
+        error: (err) => {
+          this.importing = false;
+          this.importSummary = null;
+          this.selectedFile = null;
+          this.closeImportModal();
+          console.error('Import failed', err);
+        }
+      });
+  }
+
+  downloadTemplate(): void {
+    this.userService.downloadImportTemplate().subscribe((blob: Blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'users_import_template.xlsx';
+      a.click();
+      window.URL.revokeObjectURL(url);
+    });
+  }
+
+  // Helpers for import summary rendering
+  get importErrors(): any[] {
+    const errors = this.importSummary && this.importSummary.errors;
+    return Array.isArray(errors) ? errors : [];
   }
 
   ngOnDestroy(): void {
@@ -191,6 +254,18 @@ export class UserListComponent implements OnInit, OnDestroy {
     this.selectedUser = null;
   }
 
+  openStatusModal(user: User): void {
+    this.selectedUser = user;
+    this.nextActiveState = !user.isActive;
+    this.showStatusModal = true;
+  }
+
+  closeStatusModal(): void {
+    this.showStatusModal = false;
+    this.selectedUser = null;
+    this.nextActiveState = null;
+  }
+
   onUserSaved(user: User): void {
     this.closeUserModal();
     this.refreshUsers();
@@ -214,6 +289,24 @@ export class UserListComponent implements OnInit, OnDestroy {
           }
         });
     }
+  }
+
+  onStatusConfirm(): void {
+    if (!this.selectedUser || this.nextActiveState === null) return;
+    this.statusLoading = true;
+    this.userService.updateUser(this.selectedUser._id, { isActive: this.nextActiveState })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.statusLoading = false;
+          this.closeStatusModal();
+          this.refreshUsers();
+        },
+        error: (error) => {
+          this.statusLoading = false;
+          console.error('Error updating status:', error);
+        }
+      });
   }
 
   onSort(column: string): void {

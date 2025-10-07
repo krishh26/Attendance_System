@@ -109,4 +109,15 @@ export class UserService {
   getUserById(userId: string): Observable<any> {
     return this.apiService.get<any>(`/users/${userId}`);
   }
+
+  importUsers(file: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.apiService.postForm<any>('/users/import', formData);
+  }
+
+  downloadImportTemplate(): Observable<Blob> {
+    // Using native HttpClient for blob; add a pass-through here for convenience if needed later
+    return (this.apiService as any).http.get(`${(this.apiService as any).baseUrl}/users/import/template`, { responseType: 'blob' });
+  }
 }

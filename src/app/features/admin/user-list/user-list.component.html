@@ -53,12 +53,65 @@
       <select id="pageSize" [ngModel]="pageSize" (ngModelChange)="onPageSizeChange($event)">
         <option *ngFor="let size of pageSizeOptions" [ngValue]="size">{{ size }}</option>
       </select>
+      <button class="btn-import" (click)="openImportModal()">
+        <i class="fas fa-file-upload"></i>
+        Import
+      </button>
     </div>
   </div>
 
   <!-- Results meta -->
   <div class="results-meta" *ngIf="!loading && totalUsers > 0">
     <span>{{ rangeStart }}–{{ rangeEnd }} of {{ totalUsers }} users</span>
+  </div>
+
+  <!-- Import Modal -->
+  <div class="modal-overlay" *ngIf="showImportModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Import Users from Excel</h3>
+        <div class="modal-actions">
+          <button class="btn-link" (click)="downloadTemplate()" title="Download template">
+            <i class="fas fa-download"></i>
+            Template
+          </button>
+          <button class="close" (click)="closeImportModal()">×</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <label class="file-drop" [class.has-file]="selectedFile">
+          <input type="file" accept=".xlsx,.xls" (change)="onFileSelected($event)">
+          <i class="fas fa-file-excel icon"></i>
+          <div class="texts">
+            <strong>{{ selectedFile ? selectedFile.name : 'Click to upload or drag & drop' }}</strong>
+            <span>Only .xlsx or .xls files are supported</span>
+          </div>
+        </label>
+        <p class="hint">Required columns: firstname, lastname, email, mobilenumber, addressline1, city, state, pincode. Optional: addressline2, center, role, password.</p>
+        <div *ngIf="importSummary" class="import-summary">
+          <p>Created: {{ importSummary.created }}</p>
+          <p>Updated: {{ importSummary.updated }}</p>
+          <p>Skipped: {{ importSummary.skipped }}</p>
+          <div *ngIf="importErrors.length">
+            <h4>Errors ({{ importSummary.errors.length }})</h4>
+            <div class="errors-list">
+              <div class="error-item" *ngFor="let e of importErrors | slice:0:5; let i = index">
+                <span class="idx">#{{ i + 1 }}</span>
+                <span class="msg">{{ e.email || e.index || '-' }} - {{ e.error }}</span>
+              </div>
+              <div class="more" *ngIf="importErrors.length > 5">and {{ importErrors.length - 5 }} more…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" (click)="closeImportModal()">Close</button>
+        <button class="btn btn-primary" [disabled]="!selectedFile || importing" (click)="startImport()">
+          <span *ngIf="importing" class="spinner"></span>
+          Import
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Loading State -->
@@ -130,6 +183,9 @@
             <button class="btn-icon logs" title="View Logs" (click)="openLogsModal(user._id)">
               <i class="fas fa-clipboard-list"></i>
             </button>
+            <button class="btn-icon" [class.activate]="!user.isActive" [class.deactivate]="user.isActive" [title]="user.isActive ? 'Deactivate' : 'Activate'" (click)="openStatusModal(user)">
+              <i class="fas" [ngClass]="user.isActive ? 'fa-user-slash' : 'fa-user-check'"></i>
+            </button>
           </td>
         </tr>
       </tbody>
@@ -141,6 +197,19 @@
     <i class="fas fa-users"></i>
     <p>No users found</p>
   </div>
+
+  <!-- Activate/Deactivate Confirmation Modal -->
+  <app-confirm-modal
+    [isOpen]="showStatusModal"
+    [title]="nextActiveState ? 'Activate User' : 'Deactivate User'"
+    [message]="(nextActiveState ? 'Are you sure you want to activate ' : 'Are you sure you want to deactivate ') + (selectedUser ? getFullName(selectedUser) : '') + '?'"
+    [confirmText]="nextActiveState ? 'Activate' : 'Deactivate'"
+    cancelText="Cancel"
+    [confirmButtonClass]="nextActiveState ? 'btn-primary' : 'btn-danger'"
+    [loading]="statusLoading"
+    (confirm)="onStatusConfirm()"
+    (cancel)="closeStatusModal()">
+  </app-confirm-modal>
 
   <!-- Pagination -->
   <div *ngIf="!loading && totalPages > 1" class="pagination">
