@@ -61,11 +61,23 @@
         <div class="details-grid">
           <div class="detail-item">
             <label>Role</label>
-            <span>{{ role.displayName }}</span>
+            <span>{{ role.displayName || role.name }}</span>
           </div>
           <div class="detail-item">
             <label>Role Description</label>
             <span>{{ role.description }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Role Name (Internal)</label>
+            <span>{{ role.name }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Role ID</label>
+            <span>{{ role._id }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Role Active</label>
+            <span>{{ role.isActive ? 'Active' : 'Inactive' }}</span>
           </div>
         </div>
       </div>
@@ -98,6 +110,10 @@
             <label>Pincode</label>
             <span>{{ user.pincode }}</span>
           </div>
+          <div class="detail-item">
+            <label>Mobile</label>
+            <span>{{ user.mobilenumber }}</span>
+          </div>
         </div>
       </div>
 
@@ -116,6 +132,10 @@
           <div class="detail-item">
             <label>Last Updated</label>
             <span>{{ formatDate(user.updatedAt) }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Status</label>
+            <span>{{ getStatusText(user.isActive) }}</span>
           </div>
         </div>
       </div>

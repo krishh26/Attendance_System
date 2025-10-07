@@ -80,13 +80,6 @@ export class SidebarComponent implements OnInit, OnDestroy {
       route: '/admin/tour/list',
       permission: 'tour:list'
     }
-    ,
-    {
-      title: 'Audit Logs',
-      icon: 'fas fa-clipboard-list',
-      route: '/admin/logs',
-      permission: 'audit:list'
-    }
   ];
 
   menuItems: MenuItem[] = [];

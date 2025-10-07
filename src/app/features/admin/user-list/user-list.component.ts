@@ -3,9 +3,10 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
-import { UserService, User, UserListParams } from './user.service';
+import { UserService, User, UserListParams, RoleRef } from './user.service';
 import { UserFormModalComponent } from './user-form-modal/user-form-modal.component';
 import { ConfirmModalComponent } from './confirm-modal/confirm-modal.component';
+import { AuditLogsService, AuditLog } from '../../audit-logs/services/audit-logs.service';
 
 @Component({
   selector: 'app-user-list',
@@ -23,6 +24,7 @@ export class UserListComponent implements OnInit, OnDestroy {
   currentPage = 1;
   pageSize = 10;
   totalUsers = 0;
+  pageSizeOptions: number[] = [10, 25, 50, 100];
 
   // Search and filters
   searchTerm = '';
@@ -35,15 +37,18 @@ export class UserListComponent implements OnInit, OnDestroy {
   // Modal states
   showUserModal = false;
   showDeleteModal = false;
+  showLogsModal = false;
   selectedUser: User | null = null;
   deleteLoading = false;
+  userLogs: AuditLog[] = [];
 
   private destroy$ = new Subject<void>();
   private searchSubject = new Subject<string>();
 
   constructor(
     private router: Router,
-    private userService: UserService
+    private userService: UserService,
+    private auditLogsService: AuditLogsService
   ) {
     // Debounce search input
     this.searchSubject
@@ -61,6 +66,18 @@ export class UserListComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadUsers();
+  }
+
+  openLogsModal(userId: string): void {
+    this.showLogsModal = true;
+    this.userLogs = [];
+    this.auditLogsService.list({ module: 'users', entityId: userId, page: 1, limit: 20 }).subscribe((res : any) => {
+      this.userLogs = res.data?.data;
+    });
+  }
+
+  closeLogsModal(): void {
+    this.showLogsModal = false;
   }
 
   ngOnDestroy(): void {
@@ -87,16 +104,42 @@ export class UserListComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
-          let filteredUsers = response.data;
+          let workingList: User[] = Array.isArray(response?.data) ? response.data : [];
 
-          // Apply status filter on client side since API doesn't support it
+          // Client-side filter by status
           if (this.statusFilter !== 'all') {
             const isActive = this.statusFilter === 'active';
-            filteredUsers = response.data.filter(user => user.isActive === isActive);
+            workingList = workingList.filter(user => user.isActive === isActive);
           }
 
-          this.users = filteredUsers;
-          this.totalUsers = filteredUsers.length;
+          // Client-side sort fallback
+          const compare = (a: User, b: User): number => {
+            let aVal: any;
+            let bVal: any;
+            if (this.sortBy === 'firstname') {
+              aVal = (a.firstname || '').toLowerCase();
+              bVal = (b.firstname || '').toLowerCase();
+            } else if (this.sortBy === 'email') {
+              aVal = (a.email || '').toLowerCase();
+              bVal = (b.email || '').toLowerCase();
+            } else if (this.sortBy === 'createdAt') {
+              aVal = a.createdAt ? new Date(a.createdAt as any).getTime() : 0;
+              bVal = b.createdAt ? new Date(b.createdAt as any).getTime() : 0;
+            } else {
+              aVal = (a as any)[this.sortBy];
+              bVal = (b as any)[this.sortBy];
+            }
+            if (aVal < bVal) return -1;
+            if (aVal > bVal) return 1;
+            return 0;
+          };
+          workingList = [...workingList].sort((a, b) => this.sortOrder === 'asc' ? compare(a, b) : compare(b, a));
+
+          // Pagination slice
+          this.totalUsers = workingList.length;
+          const startIndex = (this.currentPage - 1) * this.pageSize;
+          const endIndex = startIndex + this.pageSize;
+          this.users = workingList.slice(startIndex, endIndex);
           this.loading = false;
         },
         error: (error) => {
@@ -188,6 +231,12 @@ export class UserListComponent implements OnInit, OnDestroy {
     this.loadUsers();
   }
 
+  onPageSizeChange(size: number): void {
+    this.pageSize = Number(size);
+    this.currentPage = 1;
+    this.loadUsers();
+  }
+
   get totalPages(): number {
     return Math.ceil(this.totalUsers / this.pageSize);
   }
@@ -201,6 +250,16 @@ export class UserListComponent implements OnInit, OnDestroy {
       pages.push(i);
     }
     return pages;
+  }
+
+  get rangeStart(): number {
+    if (this.totalUsers === 0) return 0;
+    return (this.currentPage - 1) * this.pageSize + 1;
+  }
+
+  get rangeEnd(): number {
+    if (this.totalUsers === 0) return 0;
+    return Math.min(this.currentPage * this.pageSize, this.totalUsers);
   }
 
   viewUserDetails(userId: string): void {
@@ -222,5 +281,12 @@ export class UserListComponent implements OnInit, OnDestroy {
   getProfileImage(user: User): string {
     const name = this.getFullName(user);
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}`;
+  }
+
+  getRoleClass(user: User): string {
+    if (!user.role) return 'role-none';
+    const roleName = typeof user.role === 'string' ? user.role : (user.role as RoleRef)?.name;
+    const safe = String(roleName || 'none').toLowerCase();
+    return `role-${safe}`;
   }
 }

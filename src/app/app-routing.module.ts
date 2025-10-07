@@ -37,10 +37,6 @@ export const routes: Routes = [
       {
         path: 'tour',
         loadChildren: () => import('./features/tour-management/tour-management.module').then(m => m.TourManagementModule)
-      },
-      {
-        path: 'logs',
-        loadChildren: () => import('./features/audit-logs/audit-logs.module').then(m => m.AuditLogsModule)
       }
     ]
   },

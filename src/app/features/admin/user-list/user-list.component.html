@@ -47,6 +47,18 @@
         Inactive
       </button>
     </div>
+
+    <div class="controls-right">
+      <label for="pageSize">Rows</label>
+      <select id="pageSize" [ngModel]="pageSize" (ngModelChange)="onPageSizeChange($event)">
+        <option *ngFor="let size of pageSizeOptions" [ngValue]="size">{{ size }}</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Results meta -->
+  <div class="results-meta" *ngIf="!loading && totalUsers > 0">
+    <span>{{ rangeStart }}–{{ rangeEnd }} of {{ totalUsers }} users</span>
   </div>
 
   <!-- Loading State -->
@@ -92,7 +104,11 @@
             <span class="user-name">{{ getFullName(user) }}</span>
           </td>
           <td>{{ user.email }}</td>
-          <td>{{ user.role || 'No Role' }}</td>
+          <td>
+            <span class="role-badge" [ngClass]="getRoleClass(user)">
+              {{ user?.role?.displayName || user?.role?.name || 'No Role' }}
+            </span>
+          </td>
           <td>{{ user.mobilenumber }}</td>
           <td>{{ user.center }}</td>
           <td>{{ user.createdAt | date:'shortDate' }}</td>
@@ -102,14 +118,17 @@
             </span>
           </td>
           <td class="actions">
-            <button class="btn-icon" title="View Details" (click)="viewUserDetails(user._id)">
+            <button class="btn-icon view" title="View Details" (click)="viewUserDetails(user._id)">
               <i class="fas fa-eye"></i>
             </button>
-            <button class="btn-icon" title="Edit" (click)="openEditUserModal(user)">
+            <button class="btn-icon edit" title="Edit" (click)="openEditUserModal(user)">
               <i class="fas fa-edit"></i>
             </button>
             <button class="btn-icon delete" title="Delete" (click)="openDeleteUserModal(user)">
               <i class="fas fa-trash"></i>
+            </button>
+            <button class="btn-icon logs" title="View Logs" (click)="openLogsModal(user._id)">
+              <i class="fas fa-clipboard-list"></i>
             </button>
           </td>
         </tr>
@@ -125,6 +144,13 @@
 
   <!-- Pagination -->
   <div *ngIf="!loading && totalPages > 1" class="pagination">
+    <button
+      class="btn-page"
+      [disabled]="currentPage === 1"
+      (click)="onPageChange(1)"
+      title="First">
+      <i class="fas fa-angle-double-left"></i>
+    </button>
     <button
       class="btn-page"
       [disabled]="currentPage === 1"
@@ -145,6 +171,13 @@
       [disabled]="currentPage === totalPages"
       (click)="onPageChange(currentPage + 1)">
       <i class="fas fa-chevron-right"></i>
+    </button>
+    <button
+      class="btn-page"
+      [disabled]="currentPage === totalPages"
+      (click)="onPageChange(totalPages)"
+      title="Last">
+      <i class="fas fa-angle-double-right"></i>
     </button>
   </div>
 
@@ -169,4 +202,51 @@
     (cancel)="closeDeleteModal()">
   </app-confirm-modal>
 
+  <!-- Logs Modal -->
+  <div class="modal-overlay" *ngIf="showLogsModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>User Audit Logs</h3>
+        <button class="close" (click)="closeLogsModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div *ngIf="userLogs.length === 0" class="empty-state">
+          <i class="fas fa-clipboard-list"></i>
+          <p>No logs exist for this user</p>
+        </div>
+        <div *ngFor="let log of userLogs; let i = index" class="log-entry" [ngClass]="{ 'odd': i % 2 === 1, 'even': i % 2 === 0 }">
+          <div class="log-meta">
+            <span class="log-action" [ngClass]="{
+              'action-create': log.action === 'create',
+              'action-update': log.action === 'update',
+              'action-delete': log.action === 'delete'
+            }">{{ log.action | titlecase }}</span>
+            <span class="log-by">by {{ log.performedByEmail || log.performedBy }}</span>
+            <span class="log-time">{{ log.createdAt | date:'medium' }}</span>
+          </div>
+          <div class="log-changes">
+            <div class="change" *ngFor="let c of log.changes">
+              <div class="field">{{ c.field }}</div>
+              <div class="values">
+                <div class="old" *ngIf="log.action !== 'create' && c.oldValue !== undefined">
+                  <label>Old</label>
+                  <pre>{{ c.oldValue | json }}</pre>
+                </div>
+                <div class="new" *ngIf="log.action !== 'delete' && c.newValue !== undefined">
+                  <label>New</label>
+                  <pre>{{ c.newValue | json }}</pre>
+                </div>
+              </div>
+            </div>
+            <div class="no-field-changes" *ngIf="!log.changes || log.changes.length === 0">
+              No field-level changes captured.
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" (click)="closeLogsModal()">Close</button>
+      </div>
+    </div>
+  </div>
 </div>
