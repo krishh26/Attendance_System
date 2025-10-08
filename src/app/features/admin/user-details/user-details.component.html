@@ -63,7 +63,7 @@
               <label>Address</label>
               <p>{{ user.addressline1 }}{{ user.addressline2 ? ', ' + user.addressline2 : '' }}</p>
               <p class="address-details">{{ user.city }}, {{ user.state }} - {{ user.pincode }}</p>
-              <p class="address-details">Center: {{ user.center }}</p>
+              <p class="address-details">Taluka: {{ user.center }}</p>
             </div>
           </div>
           <div class="detail-item">
@@ -112,7 +112,10 @@
           </div>
           <div class="detail-item">
             <label>Status</label>
-            <p>{{ getStatusText(user.isActive) }}</p>
+            <span class="status-badge" style="width: 80px; text-align: center;" [ngClass]="getStatusClass(user.isActive)">
+              {{ getStatusText(user.isActive) }}
+            </span>
+            <!-- <p>{{ getStatusText(user.isActive) }}</p> -->
           </div>
         </div>
       </div>

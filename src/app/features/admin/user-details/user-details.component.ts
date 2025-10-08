@@ -154,6 +154,7 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
   }
 
   getStatusClass(isActive: boolean): string {
+    console.log('isActive', isActive);
     return isActive ? 'status-active' : 'status-inactive';
   }
 

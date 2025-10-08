@@ -1,16 +1,19 @@
-import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, OnChanges, SimpleChanges, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 import { UserService, User, CreateUserRequest, UpdateUserRequest } from '../user.service';
 import { RoleService, Role } from '../role.service';
+import { StateService, State } from '../services/state.service';
+import { CityService, City } from '../services/city.service';
 
 @Component({
   selector: 'app-user-form-modal',
   templateUrl: './user-form-modal.component.html',
   styleUrls: ['./user-form-modal.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  providers: [StateService, CityService]
 })
 export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
   @Input() user: User | null = null;
@@ -20,6 +23,8 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
 
   userForm: FormGroup;
   roles: Role[] = [];
+  states: State[] = [];
+  cities: City[] = [];
   loading = false;
   error: string | null = null;
   isEditMode = false;
@@ -29,7 +34,9 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
   constructor(
     private fb: FormBuilder,
     private userService: UserService,
-    private roleService: RoleService
+    private roleService: RoleService,
+    private stateService: StateService,
+    private cityService: CityService
   ) {
     this.userForm = this.fb.group({
       firstname: ['', [Validators.required, Validators.minLength(2)]],
@@ -49,6 +56,7 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
 
       ngOnInit(): void {
     this.loadRoles();
+    this.loadStates();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -105,6 +113,47 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
       });
   }
 
+  loadStates(): void {
+    this.stateService.getStates()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response: any) => {
+          this.states = response.data.sort((a: any, b: any) => a.name.localeCompare(b.name));
+        },
+        error: (error: any) => {
+          console.error('Error loading states:', error);
+          this.error = 'Failed to load states';
+        }
+      });
+  }
+
+  loadCitiesByState(stateId: string): void {
+    if (!stateId) {
+      this.cities = [];
+      this.userForm.patchValue({ city: '' });
+      return;
+    }
+
+    this.cityService.getCitiesByState(stateId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response: any) => {
+          this.cities = response.data.sort((a: any, b: any) => a.name.localeCompare(b.name));
+          // Reset city selection when state changes
+          this.userForm.patchValue({ city: '' });
+        },
+        error: (error: any) => {
+          console.error('Error loading cities:', error);
+          this.error = 'Failed to load cities';
+        }
+      });
+  }
+
+  onStateChange(): void {
+    const selectedStateId = this.userForm.get('state')?.value;
+    this.loadCitiesByState(selectedStateId);
+  }
+
   populateForm(): void {
     if (this.user && this.roles.length > 0) {
       this.userForm.patchValue({
@@ -125,6 +174,15 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
       // Make password optional for edit mode
       this.userForm.get('password')?.clearValidators();
       this.userForm.get('password')?.updateValueAndValidity();
+
+      // For edit mode, we need to find the state ID by name and load cities
+      if (this.user?.state && this.states.length > 0) {
+        const selectedState = this.states.find(state => state.name === this.user?.state);
+        if (selectedState) {
+          this.userForm.patchValue({ state: selectedState._id });
+          this.loadCitiesByState(selectedState._id);
+        }
+      }
     }
   }
 
@@ -134,10 +192,20 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
       this.error = null;
 
       const formData = this.userForm.value;
+      
+      // Convert state and city IDs to names before sending to API
+      const selectedState = this.states.find(state => state._id === formData.state);
+      const selectedCity = this.cities.find(city => city._id === formData.city);
+      
+      const processedFormData = {
+        ...formData,
+        state: selectedState ? selectedState.name : formData.state,
+        city: selectedCity ? selectedCity.name : formData.city
+      };
 
       if (this.isEditMode && this.user) {
         // Update user
-        const updateData: UpdateUserRequest = { ...formData };
+        const updateData: UpdateUserRequest = { ...processedFormData };
         if (!updateData.password) {
           delete updateData.password;
         }
@@ -158,7 +226,7 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
           });
       } else {
         // Create user
-        const createData: CreateUserRequest = formData;
+        const createData: CreateUserRequest = processedFormData;
 
         this.userService.createUser(createData)
           .pipe(takeUntil(this.destroy$))

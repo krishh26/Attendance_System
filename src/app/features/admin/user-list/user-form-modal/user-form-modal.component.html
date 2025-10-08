@@ -125,28 +125,36 @@
 
       <div class="form-row">
         <div class="form-group">
-          <label for="city">City </label>
-          <input
-            id="city"
-            type="text"
-            formControlName="city"
-            [class.invalid]="isFieldInvalid('city')"
-            placeholder="Enter city">
-          <div class="error-text" *ngIf="isFieldInvalid('city')">
-            {{ getFieldError('city') }}
+          <label for="state">State *</label>
+          <select
+            id="state"
+            formControlName="state"
+            [class.invalid]="isFieldInvalid('state')"
+            (change)="onStateChange()">
+            <option value="">Select a state</option>
+            <option *ngFor="let state of states" [value]="state._id">
+              {{ state.name }}
+            </option>
+          </select>
+          <div class="error-text" *ngIf="isFieldInvalid('state')">
+            {{ getFieldError('state') }}
           </div>
         </div>
 
         <div class="form-group">
-          <label for="state">State </label>
-          <input
-            id="state"
-            type="text"
-            formControlName="state"
-            [class.invalid]="isFieldInvalid('state')"
-            placeholder="Enter state">
-          <div class="error-text" *ngIf="isFieldInvalid('state')">
-            {{ getFieldError('state') }}
+          <label for="city">City *</label>
+          <select
+            id="city"
+            formControlName="city"
+            [class.invalid]="isFieldInvalid('city')"
+            [disabled]="!cities.length">
+            <option value="">Select a city</option>
+            <option *ngFor="let city of cities" [value]="city._id">
+              {{ city.name }}
+            </option>
+          </select>
+          <div class="error-text" *ngIf="isFieldInvalid('city')">
+            {{ getFieldError('city') }}
           </div>
         </div>
       </div>
