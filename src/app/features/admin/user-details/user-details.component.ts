@@ -2,8 +2,9 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
-import { UserService, User } from '../user-list/user.service';
+import { UserService, User, RoleRef } from '../user-list/user.service';
 import { RoleService, Role } from '../user-list/role.service';
+import { AuditLogsService, AuditLog } from '../../audit-logs/services/audit-logs.service';
 
 // Original interface - commented out but kept for reference
 /*
@@ -41,6 +42,8 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
   role: Role | null = null;
   loading = false;
   error: string | null = null;
+  showLogsModal = false;
+  userLogs: AuditLog[] = [];
 
   // Original mock data - commented out but kept for reference
   /*
@@ -83,7 +86,8 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private userService: UserService,
-    private roleService: RoleService
+    private roleService: RoleService,
+    private auditLogsService: AuditLogsService
   ) {}
 
   ngOnInit() {
@@ -109,9 +113,15 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
           this.user = response.data;
           this.loading = false;
 
-          // Load role details if user has a role
+          // Load/bind role details if user has a role
           if (this.user?.role) {
-            this.loadRoleDetails(this.user.role);
+            if (typeof this.user.role === 'object') {
+              this.role = this.user.role as unknown as Role;
+            } else {
+              this.loadRoleDetails(this.user.role as string);
+            }
+          } else {
+            this.role = null;
           }
         },
         error: (error) => {
@@ -122,12 +132,16 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
       });
   }
 
-  loadRoleDetails(roleId: string) {
+  loadRoleDetails(roleRef: string | Role) {
+    if (typeof roleRef !== 'string') {
+      this.role = roleRef as Role;
+      return;
+    }
     this.roleService.getRoles({ limit: 100 })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
-          this.role = response.data.find(role => role._id === roleId) || null;
+          this.role = response.data.find(role => role._id === roleRef) || null;
         },
         error: (error) => {
           console.error('Error loading role details:', error);
@@ -179,5 +193,26 @@ export class UserDetailsComponent implements OnInit, OnDestroy {
       default:
         return 'fas fa-info-circle';
     }
+  }
+
+  openLogsModal(): void {
+    if (!this.user?._id) return;
+    this.showLogsModal = true;
+    this.userLogs = [];
+    this.auditLogsService
+      .list({ module: 'users', entityId: this.user._id, page: 1, limit: 20 })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (res: any) => {
+          this.userLogs = res.data?.data || [];
+        },
+        error: () => {
+          // keep empty
+        }
+      });
+  }
+
+  closeLogsModal(): void {
+    this.showLogsModal = false;
   }
 }

@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subject, takeUntil } from 'rxjs';
-import { UserService, User } from '../user.service';
+import { UserService, User, RoleRef } from '../user.service';
 import { RoleService, Role } from '../role.service';
 
 @Component({
@@ -52,9 +52,15 @@ export class UserDetailsModalComponent implements OnInit, OnDestroy {
           this.user = response.data;
           this.loading = false;
 
-          // Load role details if user has a role
+          // Bind role details if present
           if (this.user?.role) {
-            this.loadRoleDetails(this.user.role);
+            if (typeof this.user.role === 'object') {
+              this.role = this.user.role as unknown as Role;
+            } else {
+              this.loadRoleDetails(this.user.role as string);
+            }
+          } else {
+            this.role = null;
           }
         },
         error: (error) => {
@@ -65,12 +71,16 @@ export class UserDetailsModalComponent implements OnInit, OnDestroy {
       });
   }
 
-  loadRoleDetails(roleId: string): void {
+  loadRoleDetails(roleRef: string | Role): void {
+    if (typeof roleRef !== 'string') {
+      this.role = roleRef as Role;
+      return;
+    }
     this.roleService.getRoles({ limit: 100 })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
-          this.role = response.data.find(role => role._id === roleId) || null;
+          this.role = response.data.find(role => role._id === roleRef) || null;
         },
         error: (error) => {
           console.error('Error loading role details:', error);

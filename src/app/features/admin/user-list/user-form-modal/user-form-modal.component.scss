@@ -180,6 +180,37 @@
     }
   }
 
+  // Password toggle styles
+  .password-group {
+    .input-with-toggle {
+      position: relative;
+
+      input {
+        padding-right: 40px;
+      }
+
+      .btn-toggle {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: transparent;
+        border: none;
+        color: #6c757d;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        line-height: 0;
+        transition: background-color 0.2s, color 0.2s;
+
+        &:hover {
+          background-color: #f1f3f5;
+          color: #343a40;
+        }
+      }
+    }
+  }
+
   .form-actions {
     display: flex;
     justify-content: flex-end;

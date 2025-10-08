@@ -28,6 +28,7 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
   loading = false;
   error: string | null = null;
   isEditMode = false;
+  showPassword = false;
 
   private destroy$ = new Subject<void>();
 
@@ -259,6 +260,10 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
     this.userForm.reset();
     this.error = null;
     this.closeModal.emit();
+  }
+
+  togglePasswordVisibility(): void {
+    this.showPassword = !this.showPassword;
   }
 
   getFieldError(fieldName: string): string {

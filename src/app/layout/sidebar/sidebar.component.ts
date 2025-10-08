@@ -60,13 +60,13 @@ export class SidebarComponent implements OnInit, OnDestroy {
       icon: 'fas fa-user-shield',
       route: '/admin/roles/list',
       permission: 'roles:list',
-      submenu: [
-        {
-          title: 'Roles',
-          route: '/admin/roles/list',
-          permission: 'roles:list'
-        }
-      ]
+      // submenu: [
+      //   {
+      //     title: 'Roles',
+      //     route: '/admin/roles/list',
+      //     permission: 'roles:list'
+      //   }
+      // ]
     },
     {
       title: 'Holidays',

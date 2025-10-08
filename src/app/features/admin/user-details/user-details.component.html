@@ -19,12 +19,12 @@
         <i class="fas fa-arrow-left"></i>
         Back to Users
       </button>
-      <!-- <div class="header-actions">
-        <button class="btn-edit">
-          <i class="fas fa-edit"></i>
-          Edit Profile
+      <div class="header-actions">
+        <button class="btn-edit" (click)="openLogsModal()">
+          <i class="fas fa-clipboard-list"></i>
+          View Audit Logs
         </button>
-      </div> -->
+      </div>
     </div>
 
     <div class="content-grid">
@@ -34,8 +34,8 @@
           <img [src]="getProfileImage()" [alt]="getFullName()" class="profile-image">
           <div class="profile-info">
             <h2>{{ getFullName() }}</h2>
-            <p class="role" *ngIf="role">{{ role.displayName }}</p>
-            <p class="role" *ngIf="!role">{{ user.role || 'No Role' }}</p>
+            <p class="role" *ngIf="role">{{ role.displayName || role.name }}</p>
+            <p class="role" *ngIf="!role">{{ user.role?.displayName || user.role?.name || 'No Role' }}</p>
             <span class="status-badge" [ngClass]="getStatusClass(user.isActive)">
               {{ getStatusText(user.isActive) }}
             </span>
@@ -89,16 +89,16 @@
         <div class="role-details">
           <div class="detail-item">
             <label>Role Name</label>
-            <p>{{ role.displayName }}</p>
+            <p>{{ role.displayName || role.name }}</p>
           </div>
           <div class="detail-item">
             <label>Description</label>
             <p>{{ role.description }}</p>
           </div>
-          <div class="detail-item">
+          <!-- <div class="detail-item">
             <label>Permissions</label>
             <p>{{ role.permissions.length > 0 ? role.permissions.join(', ') : 'No specific permissions' }}</p>
-          </div>
+          </div> -->
         </div>
       </div>
 
@@ -116,6 +116,54 @@
               {{ getStatusText(user.isActive) }}
             </span>
             <!-- <p>{{ getStatusText(user.isActive) }}</p> -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Logs Modal -->
+      <div class="modal-overlay" *ngIf="showLogsModal">
+        <div class="modal">
+          <div class="modal-header">
+            <h3>User Audit Logs</h3>
+            <button class="close" (click)="closeLogsModal()">×</button>
+          </div>
+          <div class="modal-body">
+            <div *ngIf="userLogs.length === 0" class="empty-state">
+              <i class="fas fa-clipboard-list"></i>
+              <p>No logs exist for this user</p>
+            </div>
+            <div *ngFor="let log of userLogs; let i = index" class="log-entry" [ngClass]="{ 'odd': i % 2 === 1, 'even': i % 2 === 0 }">
+              <div class="log-meta">
+                <span class="log-action" [ngClass]="{
+                  'action-create': log.action === 'create',
+                  'action-update': log.action === 'update',
+                  'action-delete': log.action === 'delete'
+                }">{{ log.action | titlecase }}</span>
+                <span class="log-by">by {{ log.performedByEmail || log.performedBy }}</span>
+                <span class="log-time">{{ log.createdAt | date:'medium' }}</span>
+              </div>
+              <div class="log-changes">
+                <div class="change" *ngFor="let c of log.changes">
+                  <div class="field">{{ c.field }}</div>
+                  <div class="values">
+                    <div class="old" *ngIf="log.action !== 'create' && c.oldValue !== undefined">
+                      <label>Old</label>
+                      <pre>{{ c.oldValue | json }}</pre>
+                    </div>
+                    <div class="new" *ngIf="log.action !== 'delete' && c.newValue !== undefined">
+                      <label>New</label>
+                      <pre>{{ c.newValue | json }}</pre>
+                    </div>
+                  </div>
+                </div>
+                <div class="no-field-changes" *ngIf="!log.changes || log.changes.length === 0">
+                  No field-level changes captured.
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn" (click)="closeLogsModal()">Close</button>
           </div>
         </div>
       </div>

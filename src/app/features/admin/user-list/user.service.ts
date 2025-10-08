@@ -2,12 +2,20 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from '../../../shared/services/api.service';
 
+export interface RoleRef {
+  _id: string;
+  name: string;
+  displayName: string;
+  description?: string;
+  isActive?: boolean;
+}
+
 export interface User {
   _id: string;
   firstname: string;
   lastname: string;
   email: string;
-  role: string | null;
+  role: any;
   mobilenumber: string;
   addressline1: string;
   addressline2: string;
@@ -100,5 +108,16 @@ export class UserService {
 
   getUserById(userId: string): Observable<any> {
     return this.apiService.get<any>(`/users/${userId}`);
+  }
+
+  importUsers(file: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.apiService.postForm<any>('/users/import', formData);
+  }
+
+  downloadImportTemplate(): Observable<Blob> {
+    // Using native HttpClient for blob; add a pass-through here for convenience if needed later
+    return (this.apiService as any).http.get(`${(this.apiService as any).baseUrl}/users/import/template`, { responseType: 'blob' });
   }
 }
