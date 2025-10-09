@@ -54,6 +54,9 @@ export interface LeaveListParams {
   endDate?: string;
   isHalfDay?: boolean;
   approvedBy?: string;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }
 
 @Injectable({
@@ -81,6 +84,9 @@ export class LeaveService {
     if (params.endDate) queryParams.append('endDate', params.endDate);
     if (params.isHalfDay !== undefined) queryParams.append('isHalfDay', params.isHalfDay.toString());
     if (params.approvedBy) queryParams.append('approvedBy', params.approvedBy);
+    if (params.search) queryParams.append('search', params.search);
+    if (params.sortBy) queryParams.append('sortBy', params.sortBy);
+    if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
 
     if (queryParams.toString()) {
       endpoint += `?${queryParams.toString()}`;

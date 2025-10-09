@@ -1,46 +1,66 @@
 <div class="leave-list-container">
-  <!-- Header -->
   <div class="header">
     <h1>Leave Requests</h1>
     <div class="header-actions">
-      <button class="btn-refresh" (click)="refreshData()" [disabled]="loading">
-        <i class="fas fa-sync-alt" [class.fa-spin]="loading"></i>
-        Refresh
+      <button class="btn-refresh" (click)="refreshData()" title="Refresh">
+        <i class="fas fa-sync-alt"></i>
       </button>
-      <button
-        *ngIf="canCreate()"
-        class="btn-add"
-        (click)="createLeaveRequest()"
-      >
+      <button class="btn-add" (click)="createLeaveRequest()" *ngIf="canCreate()">
         <i class="fas fa-plus"></i>
         New Leave Request
       </button>
     </div>
   </div>
 
-  <!-- Filters -->
+  <!-- Error Message -->
+  <div *ngIf="error" class="error-message">
+    {{ error }}
+  </div>
+
   <div class="filters">
     <div class="search-box">
       <i class="fas fa-search"></i>
       <input
         type="text"
         placeholder="Search leave requests..."
-        [(ngModel)]="searchTerm"
-        (input)="onSearchChange()">
+        [value]="searchTerm"
+        (input)="onSearchChange($event)">
+    </div>
+
+    <div class="filter-buttons">
+      <button
+        class="btn-filter"
+        [class.active]="statusFilter === 'all'"
+        (click)="onStatusFilterChange('all')">
+        All
+      </button>
+      <button
+        class="btn-filter"
+        [class.active]="statusFilter === 'pending'"
+        (click)="onStatusFilterChange('pending')">
+        Pending
+      </button>
+      <button
+        class="btn-filter"
+        [class.active]="statusFilter === 'approved'"
+        (click)="onStatusFilterChange('approved')">
+        Approved
+      </button>
+      <button
+        class="btn-filter"
+        [class.active]="statusFilter === 'rejected'"
+        (click)="onStatusFilterChange('rejected')">
+        Rejected
+      </button>
+      <button
+        class="btn-filter"
+        [class.active]="statusFilter === 'cancelled'"
+        (click)="onStatusFilterChange('cancelled')">
+        Cancelled
+      </button>
     </div>
 
     <div class="filter-controls">
-      <div class="filter-group">
-        <label>Status:</label>
-        <select [(ngModel)]="statusFilter" (change)="onStatusFilterChange()">
-          <option value="all">All Status</option>
-          <option value="pending">Pending</option>
-          <option value="approved">Approved</option>
-          <option value="rejected">Rejected</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
-      </div>
-
       <div class="filter-group">
         <label>Leave Type:</label>
         <select [(ngModel)]="leaveTypeFilter" (change)="onLeaveTypeFilterChange()">
@@ -84,6 +104,12 @@
         Clear Filters
       </button>
     </div>
+
+  </div>
+
+  <!-- Results meta -->
+  <div class="results-meta" *ngIf="!loading && totalItems > 0">
+    <span>{{ rangeStart }}–{{ rangeEnd }} of {{ totalItems }} leave requests</span>
   </div>
 
   <!-- Loading State -->
@@ -100,36 +126,56 @@
   </div>
 
   <!-- Leave Table -->
-  <div *ngIf="!loading && !error" class="leave-table">
-    <div class="table-header">
-      <p class="results-info">
-        Showing {{ (currentPage - 1) * pageSize + 1 }} - {{ getEndItemNumber() }} of {{ totalItems }} results
-      </p>
-    </div>
-
+  <div *ngIf="!loading && leaveRequests.length > 0" class="leave-table">
     <table>
       <thead>
         <tr>
-          <th>Employee</th>
-          <th>Leave Type</th>
-          <th>Start Date</th>
-          <th>End Date</th>
+          <th (click)="onSort('employee')" class="sortable">
+            Employee
+            <i class="fas fa-sort" *ngIf="sortBy !== 'employee'"></i>
+            <i class="fas fa-sort-up" *ngIf="sortBy === 'employee' && sortOrder === 'asc'"></i>
+            <i class="fas fa-sort-down" *ngIf="sortBy === 'employee' && sortOrder === 'desc'"></i>
+          </th>
+          <th (click)="onSort('leaveType')" class="sortable">
+            Leave Type
+            <i class="fas fa-sort" *ngIf="sortBy !== 'leaveType'"></i>
+            <i class="fas fa-sort-up" *ngIf="sortBy === 'leaveType' && sortOrder === 'asc'"></i>
+            <i class="fas fa-sort-down" *ngIf="sortBy === 'leaveType' && sortOrder === 'desc'"></i>
+          </th>
+          <th (click)="onSort('startDate')" class="sortable">
+            Start Date
+            <i class="fas fa-sort" *ngIf="sortBy !== 'startDate'"></i>
+            <i class="fas fa-sort-up" *ngIf="sortBy === 'startDate' && sortOrder === 'asc'"></i>
+            <i class="fas fa-sort-down" *ngIf="sortBy === 'startDate' && sortOrder === 'desc'"></i>
+          </th>
+          <th (click)="onSort('endDate')" class="sortable">
+            End Date
+            <i class="fas fa-sort" *ngIf="sortBy !== 'endDate'"></i>
+            <i class="fas fa-sort-up" *ngIf="sortBy === 'endDate' && sortOrder === 'asc'"></i>
+            <i class="fas fa-sort-down" *ngIf="sortBy === 'endDate' && sortOrder === 'desc'"></i>
+          </th>
           <th>Total Days</th>
-          <th>Status</th>
+          <th (click)="onSort('status')" class="sortable">
+            Status
+            <i class="fas fa-sort" *ngIf="sortBy !== 'status'"></i>
+            <i class="fas fa-sort-up" *ngIf="sortBy === 'status' && sortOrder === 'asc'"></i>
+            <i class="fas fa-sort-down" *ngIf="sortBy === 'status' && sortOrder === 'desc'"></i>
+          </th>
           <th>Reason</th>
-          <th>Created</th>
+          <th (click)="onSort('createdAt')" class="sortable">
+            Created Date
+            <i class="fas fa-sort" *ngIf="sortBy !== 'createdAt'"></i>
+            <i class="fas fa-sort-up" *ngIf="sortBy === 'createdAt' && sortOrder === 'asc'"></i>
+            <i class="fas fa-sort-down" *ngIf="sortBy === 'createdAt' && sortOrder === 'desc'"></i>
+          </th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let leave of leaveRequests">
-          <td>
-            <div class="employee-info">
-              <div class="employee-avatar">
-                <img [src]="'https://ui-avatars.com/api/?name=' + getEmployeeName(leave)" [alt]="getEmployeeName(leave)">
-              </div>
-              <span>{{ getEmployeeName(leave) }}</span>
-            </div>
+          <td class="employee-cell">
+            <img [src]="getProfileImage(leave)" [alt]="getEmployeeName(leave)" class="employee-avatar">
+            <span class="employee-name">{{ getEmployeeName(leave) }}</span>
           </td>
           <td>
             <span class="leave-type-badge" [ngClass]="'type-' + leave.leaveType">
@@ -152,9 +198,9 @@
           </td>
           <td>{{ formatDateTime(leave.createdAt) }}</td>
           <td class="actions">
-            <!-- <button class="btn-icon" title="View Details">
+            <button class="btn-icon view" title="View Details" (click)="viewLeaveDetails(leave._id)">
               <i class="fas fa-eye"></i>
-            </button> -->
+            </button>
             <button
               class="btn-icon edit"
               [title]="canEdit(leave) ? 'Edit this leave request' : 'Only pending requests can be edited'"
@@ -197,38 +243,61 @@
         </tr>
       </tbody>
     </table>
-
-    <!-- Empty State -->
-    <div *ngIf="leaveRequests.length === 0 && !loading" class="empty-state">
-      <i class="fas fa-inbox"></i>
-      <p>No leave requests found</p>
-      <span>Try adjusting your filters or create a new leave request</span>
-    </div>
   </div>
 
-  <!-- Pagination -->
-  <div *ngIf="totalPages > 1 && !loading" class="pagination">
-    <button
-      class="btn-page"
-      [disabled]="currentPage === 1"
-      (click)="onPageChange(currentPage - 1)">
-      <i class="fas fa-chevron-left"></i>
-    </button>
+  <!-- Empty State -->
+  <div *ngIf="!loading && leaveRequests.length === 0" class="empty-state">
+    <i class="fas fa-inbox"></i>
+    <p>No leave requests found</p>
+    <span>Try adjusting your filters or create a new leave request</span>
+  </div>
 
-    <button
-      *ngFor="let page of pages"
-      class="btn-page"
-      [class.active]="page === currentPage"
-      (click)="onPageChange(page)">
-      {{ page }}
-    </button>
+  <!-- Pagination and Rows Selection -->
+  <div *ngIf="!loading && totalPages > 1" class="pagination-container">
+    <div class="pagination">
+      <button
+        class="btn-page"
+        [disabled]="currentPage === 1"
+        (click)="onPageChange(1)"
+        title="First">
+        <i class="fas fa-angle-double-left"></i>
+      </button>
+      <button
+        class="btn-page"
+        [disabled]="currentPage === 1"
+        (click)="onPageChange(currentPage - 1)">
+        <i class="fas fa-chevron-left"></i>
+      </button>
 
-    <button
-      class="btn-page"
-      [disabled]="currentPage === totalPages"
-      (click)="onPageChange(currentPage + 1)">
-      <i class="fas fa-chevron-right"></i>
-    </button>
+      <button
+        *ngFor="let page of pages"
+        class="btn-page"
+        [class.active]="page === currentPage"
+        (click)="onPageChange(page)">
+        {{ page }}
+      </button>
+
+      <button
+        class="btn-page"
+        [disabled]="currentPage === totalPages"
+        (click)="onPageChange(currentPage + 1)">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+      <button
+        class="btn-page"
+        [disabled]="currentPage === totalPages"
+        (click)="onPageChange(totalPages)"
+        title="Last">
+        <i class="fas fa-angle-double-right"></i>
+      </button>
+    </div>
+
+    <div class="rows-selection">
+      <label for="pageSize">Rows</label>
+      <select id="pageSize" [ngModel]="pageSize" (ngModelChange)="onPageSizeChange($event)">
+        <option *ngFor="let size of pageSizeOptions" [ngValue]="size">{{ size }}</option>
+      </select>
+    </div>
   </div>
 
   <!-- Status Update Modal -->

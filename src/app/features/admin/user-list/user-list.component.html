@@ -5,6 +5,10 @@
       <button class="btn-refresh" (click)="refreshUsers()" title="Refresh">
         <i class="fas fa-sync-alt"></i>
       </button>
+      <button class="btn-import" (click)="openImportModal()">
+        <i class="fas fa-file-upload"></i>
+        Import
+      </button>
       <button class="btn-add" (click)="openAddUserModal()">
         <i class="fas fa-plus"></i>
         Add New User
@@ -48,16 +52,6 @@
       </button>
     </div>
 
-    <div class="controls-right">
-      <label for="pageSize">Rows</label>
-      <select id="pageSize" [ngModel]="pageSize" (ngModelChange)="onPageSizeChange($event)">
-        <option *ngFor="let size of pageSizeOptions" [ngValue]="size">{{ size }}</option>
-      </select>
-      <button class="btn-import" (click)="openImportModal()">
-        <i class="fas fa-file-upload"></i>
-        Import
-      </button>
-    </div>
   </div>
 
   <!-- Results meta -->
@@ -211,43 +205,52 @@
     (cancel)="closeStatusModal()">
   </app-confirm-modal>
 
-  <!-- Pagination -->
-  <div *ngIf="!loading && totalPages > 1" class="pagination">
-    <button
-      class="btn-page"
-      [disabled]="currentPage === 1"
-      (click)="onPageChange(1)"
-      title="First">
-      <i class="fas fa-angle-double-left"></i>
-    </button>
-    <button
-      class="btn-page"
-      [disabled]="currentPage === 1"
-      (click)="onPageChange(currentPage - 1)">
-      <i class="fas fa-chevron-left"></i>
-    </button>
+  <!-- Pagination and Rows Selection -->
+  <div *ngIf="!loading && totalPages > 1" class="pagination-container">
+    <div class="pagination">
+      <button
+        class="btn-page"
+        [disabled]="currentPage === 1"
+        (click)="onPageChange(1)"
+        title="First">
+        <i class="fas fa-angle-double-left"></i>
+      </button>
+      <button
+        class="btn-page"
+        [disabled]="currentPage === 1"
+        (click)="onPageChange(currentPage - 1)">
+        <i class="fas fa-chevron-left"></i>
+      </button>
 
-    <button
-      *ngFor="let page of pages"
-      class="btn-page"
-      [class.active]="page === currentPage"
-      (click)="onPageChange(page)">
-      {{ page }}
-    </button>
+      <button
+        *ngFor="let page of pages"
+        class="btn-page"
+        [class.active]="page === currentPage"
+        (click)="onPageChange(page)">
+        {{ page }}
+      </button>
 
-    <button
-      class="btn-page"
-      [disabled]="currentPage === totalPages"
-      (click)="onPageChange(currentPage + 1)">
-      <i class="fas fa-chevron-right"></i>
-    </button>
-    <button
-      class="btn-page"
-      [disabled]="currentPage === totalPages"
-      (click)="onPageChange(totalPages)"
-      title="Last">
-      <i class="fas fa-angle-double-right"></i>
-    </button>
+      <button
+        class="btn-page"
+        [disabled]="currentPage === totalPages"
+        (click)="onPageChange(currentPage + 1)">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+      <button
+        class="btn-page"
+        [disabled]="currentPage === totalPages"
+        (click)="onPageChange(totalPages)"
+        title="Last">
+        <i class="fas fa-angle-double-right"></i>
+      </button>
+    </div>
+
+    <div class="rows-selection">
+      <label for="pageSize">Rows</label>
+      <select id="pageSize" [ngModel]="pageSize" (ngModelChange)="onPageSizeChange($event)">
+        <option *ngFor="let size of pageSizeOptions" [ngValue]="size">{{ size }}</option>
+      </select>
+    </div>
   </div>
 
   <!-- User Form Modal -->

@@ -22,9 +22,9 @@ export class UserListComponent implements OnInit, OnDestroy {
 
   // Pagination
   currentPage = 1;
-  pageSize = 10;
+  pageSize = 5;
   totalUsers = 0;
-  pageSizeOptions: number[] = [10, 25, 50, 100];
+  pageSizeOptions: number[] = [5, 10, 25, 50, 100];
 
   // Search and filters
   searchTerm = '';

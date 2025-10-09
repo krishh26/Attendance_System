@@ -21,9 +21,10 @@ export class LeaveListComponent implements OnInit, OnDestroy {
 
   // Pagination
   currentPage = 1;
-  pageSize = 10;
+  pageSize = 5;
   totalItems = 0;
   totalPages = 0;
+  pageSizeOptions = [5, 10, 25, 50, 100];
 
   // Filters
   searchTerm = '';
@@ -37,6 +38,11 @@ export class LeaveListComponent implements OnInit, OnDestroy {
   showStatusModal = false;
   selectedLeaveRequest: LeaveRequest | null = null;
   statusUpdateLoading = false;
+  showImportModal = false;
+
+  // Sorting
+  sortBy = '';
+  sortOrder: 'asc' | 'desc' = 'asc';
 
   // Search debouncing
   private searchSubject = new Subject<string>();
@@ -190,6 +196,11 @@ export class LeaveListComponent implements OnInit, OnDestroy {
       limit: this.pageSize
     };
 
+    // Add search
+    if (this.searchTerm.trim()) {
+      params.search = this.searchTerm.trim();
+    }
+
     // Add filters
     if (this.statusFilter !== 'all') {
       params.status = this.statusFilter;
@@ -205,6 +216,12 @@ export class LeaveListComponent implements OnInit, OnDestroy {
     }
     if (this.halfDayFilter !== 'all') {
       params.isHalfDay = this.halfDayFilter === 'true';
+    }
+
+    // Add sorting
+    if (this.sortBy) {
+      params.sortBy = this.sortBy;
+      params.sortOrder = this.sortOrder;
     }
 
     this.leaveService.getLeaveRequests(params)
@@ -226,12 +243,14 @@ export class LeaveListComponent implements OnInit, OnDestroy {
   }
 
   // Search handling
-  onSearchChange(): void {
+  onSearchChange(event: any): void {
+    this.searchTerm = event.target.value;
     this.searchSubject.next(this.searchTerm);
   }
 
   // Filter handling
-  onStatusFilterChange(): void {
+  onStatusFilterChange(status: string): void {
+    this.statusFilter = status as any;
     this.currentPage = 1;
     this.loadLeaveRequests();
   }
@@ -359,6 +378,56 @@ export class LeaveListComponent implements OnInit, OnDestroy {
   // Get end item number for pagination display
   getEndItemNumber(): number {
     return Math.min(this.currentPage * this.pageSize, this.totalItems);
+  }
+
+  // Calculate range for display
+  get rangeStart(): number {
+    return this.totalItems > 0 ? (this.currentPage - 1) * this.pageSize + 1 : 0;
+  }
+
+  get rangeEnd(): number {
+    return Math.min(this.currentPage * this.pageSize, this.totalItems);
+  }
+
+  // Page size change
+  onPageSizeChange(newSize: number): void {
+    this.pageSize = newSize;
+    this.currentPage = 1;
+    this.loadLeaveRequests();
+  }
+
+  // Sorting
+  onSort(field: string): void {
+    if (this.sortBy === field) {
+      this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortBy = field;
+      this.sortOrder = 'asc';
+    }
+    this.loadLeaveRequests();
+  }
+
+  // Import modal
+  openImportModal(): void {
+    this.showImportModal = true;
+  }
+
+  closeImportModal(): void {
+    this.showImportModal = false;
+  }
+
+  // View leave details
+  viewLeaveDetails(leaveId: string): void {
+    console.log('Viewing leave details for:', leaveId);
+    // Implement view details functionality
+  }
+
+  // Get profile image
+  getProfileImage(leave: any): string {
+    // This is a placeholder - you might need to fetch user details from another API
+    // or include user information in the leave request response
+    const name = this.getEmployeeName(leave);
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=007bff&color=fff&size=32`;
   }
 
   // Status update handling
