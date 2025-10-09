@@ -25,10 +25,10 @@
         <div class="info-item">
           <label>Leave Type:</label>
           <span class="leave-type-badge" [ngClass]="'type-' + leaveRequest.leaveType">
-            {{ leaveRequest.leaveType === 'full-day' ? 'Full Day' : 
-               leaveRequest.leaveType === 'half-day' ? 'Half Day' : 
-               leaveRequest.leaveType === 'sick' ? 'Sick Leave' : 
-               leaveRequest.leaveType === 'casual' ? 'Casual Leave' : 
+            {{ leaveRequest.leaveType === 'full-day' ? 'Full Day' :
+               leaveRequest.leaveType === 'half-day' ? 'Half Day' :
+               leaveRequest.leaveType === 'sick' ? 'Sick Leave' :
+               leaveRequest.leaveType === 'casual' ? 'Casual Leave' :
                leaveRequest.leaveType === 'annual' ? 'Annual Leave' : 'Other' }}
           </span>
         </div>
@@ -59,40 +59,42 @@
 
     <!-- Status Update Form -->
     <form (ngSubmit)="onSubmit()" class="status-form">
-      <div class="form-group">
+      <!-- Status selector only when not forced to reject -->
+      <div class="form-group" *ngIf="defaultStatus !== 'rejected'">
         <label for="status">New Status *</label>
-        <select 
-          id="status" 
-          [(ngModel)]="selectedStatus" 
+        <select
+          id="status"
+          [(ngModel)]="selectedStatus"
           name="status"
           (change)="onStatusChange()"
           required>
-          <option *ngFor="let option of statusOptions" 
-                  [value]="option.value" 
+          <option *ngFor="let option of statusOptions"
+                  [value]="option.value"
                   [ngClass]="option.class">
             {{ option.label }}
           </option>
         </select>
       </div>
 
-      <div class="form-group">
+      <!-- Notes hidden when rejecting only view -->
+      <div class="form-group" *ngIf="selectedStatus !== 'rejected'">
         <label for="notes">Notes (Optional)</label>
-        <textarea 
-          id="notes" 
-          [(ngModel)]="notes" 
+        <textarea
+          id="notes"
+          [(ngModel)]="notes"
           name="notes"
           placeholder="Add any additional notes or comments..."
           rows="3"></textarea>
       </div>
 
       <div class="form-group" *ngIf="selectedStatus === 'rejected'">
-        <label for="rejectionReason">Rejection Reason (Optional)</label>
-        <textarea 
-          id="rejectionReason" 
-          [(ngModel)]="rejectionReason" 
+        <label for="rejectionReason">Rejection Reason *</label>
+        <textarea
+          id="rejectionReason"
+          [(ngModel)]="rejectionReason"
           name="rejectionReason"
           placeholder="Provide a reason for rejection..."
-          rows="3"></textarea>
+          rows="3" required></textarea>
       </div>
 
       <div class="form-actions">
@@ -101,7 +103,7 @@
         </button>
         <button type="submit" class="btn-primary" [disabled]="loading">
           <span *ngIf="loading" class="spinner"></span>
-          Update Status
+          {{ selectedStatus === 'rejected' ? 'Reject' : 'Update Status' }}
         </button>
       </div>
     </form>

@@ -13,6 +13,7 @@ import { LeaveRequest } from '../../services/leave.service';
 export class StatusUpdateModalComponent implements OnInit {
   @Input() isOpen = false;
   @Input() leaveRequest: LeaveRequest | null = null;
+  @Input() defaultStatus: 'approved' | 'rejected' | 'cancelled' = 'approved';
   @Output() closeModal = new EventEmitter<void>();
   @Output() statusUpdated = new EventEmitter<any>();
 
@@ -35,7 +36,7 @@ export class StatusUpdateModalComponent implements OnInit {
   }
 
   resetForm(): void {
-    this.selectedStatus = 'approved';
+    this.selectedStatus = this.defaultStatus || 'approved';
     this.notes = '';
     this.rejectionReason = '';
     this.error = null;

@@ -24,16 +24,20 @@
       background-color: #6c757d;
       color: white;
       border: none;
-      padding: 10px 20px;
+      padding: 10px;
       border-radius: 4px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: center;
       cursor: pointer;
-      transition: background-color 0.2s;
+      transition: all 0.2s;
+      width: 40px;
+      height: 40px;
 
       &:hover:not(:disabled) {
         background-color: #5a6268;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
       }
 
       &:disabled {
@@ -50,16 +54,20 @@
       background-color: #007bff;
       color: white;
       border: none;
-      padding: 10px 20px;
+      padding: 10px;
       border-radius: 4px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: center;
       cursor: pointer;
-      transition: background-color 0.2s;
+      transition: all 0.2s;
+      width: 40px;
+      height: 40px;
 
       &:hover {
         background-color: #0056b3;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
       }
 
       i {
@@ -170,17 +178,20 @@
       background-color: #dc3545;
       color: white;
       border: none;
-      padding: 8px 16px;
+      padding: 8px;
       border-radius: 4px;
       cursor: pointer;
-      transition: background-color 0.2s;
+      transition: all 0.2s;
       display: flex;
       align-items: center;
-      gap: 6px;
-      font-size: 0.875rem;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
 
       &:hover {
         background-color: #c82333;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
       }
 
       i {
@@ -288,6 +299,16 @@
 }
 
 @keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+// Loading spinner animation
+.fa-spinner.fa-spin {
+  animation: fa-spin 1s infinite linear;
+}
+
+@keyframes fa-spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
@@ -489,171 +510,121 @@
 // Actions
 .actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
+  flex-wrap: wrap;
+  min-width: 200px;
 
-  .btn-icon {
-    background: none;
+  .btn-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
     border: none;
-    padding: 6px;
+    border-radius: 6px;
     cursor: pointer;
-    border-radius: 4px;
-    color: #6c757d;
-    transition: all 0.2s;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
     position: relative;
+    min-width: 32px;
+
+    i {
+      font-size: 0.875rem;
+    }
 
     &:hover:not(:disabled) {
-      background-color: #f8f9fa;
-      color: #007bff;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(0);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
     }
 
     &:disabled {
-      opacity: 0.4;
+      opacity: 0.5;
       cursor: not-allowed;
-      
-      &::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: rgba(255, 255, 255, 0.1);
-        border-radius: 4px;
+      transform: none;
+      box-shadow: none;
+    }
+
+    &:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    }
+
+    // View Button
+    &.btn-view {
+      background-color: #6c757d;
+      color: white;
+
+      &:hover:not(:disabled) {
+        background-color: #5a6268;
       }
     }
 
-    &.delete:hover:not(:disabled) {
-      color: #dc3545;
-      background-color: #fff5f5;
+    // Edit Button
+    &.btn-edit {
+      background-color: #007bff;
+      color: white;
+
+      &:hover:not(:disabled) {
+        background-color: #0056b3;
+      }
     }
 
-    &.edit:hover:not(:disabled) {
-      color: #007bff;
-      background-color: #f0f8ff;
+    // Cancel Button
+    &.btn-cancel {
+      background-color: #ffc107;
+      color: #212529;
+
+      &:hover:not(:disabled) {
+        background-color: #e0a800;
+      }
     }
 
-    &.approve:hover:not(:disabled) {
-      color: #28a745;
-      background-color: #f0fff4;
-    }
+    // Delete Button
+    &.btn-delete {
+      background-color: #dc3545;
+      color: white;
 
-    &.reject:hover:not(:disabled) {
-      color: #dc3545;
-      background-color: #fff5f5;
-    }
-
-    &.status:hover:not(:disabled) {
-      color: #17a2b8;
-      background-color: #f0f9ff;
+      &:hover:not(:disabled) {
+        background-color: #c82333;
+      }
     }
   }
 
-  .approval-actions {
+  // Status Actions Container
+  .status-actions {
     display: flex;
     gap: 4px;
-    margin-left: 8px;
-    padding-left: 8px;
+    margin-left: 6px;
+    padding-left: 6px;
     border-left: 1px solid #dee2e6;
 
-    .btn-icon {
-      &.approve {
+    .btn-action {
+      width: 28px;
+      height: 28px;
+
+      // Approve Button
+      &.btn-approve {
         background-color: #28a745;
         color: white;
-        border: none;
-        padding: 6px 8px;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        font-size: 0.8rem;
-        min-width: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
 
         &:hover:not(:disabled) {
           background-color: #218838;
-          transform: translateY(-1px);
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        &:active:not(:disabled) {
-          transform: translateY(0);
-          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-        }
-
-        &:disabled {
-          background-color: #6c757d;
-          cursor: not-allowed;
-          opacity: 0.6;
-          transform: none;
-          box-shadow: none;
-          
-          &::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-          }
-        }
-
-        i {
-          font-size: 0.75rem;
         }
       }
 
-      &.reject {
+      // Reject Button
+      &.btn-reject {
         background-color: #dc3545;
         color: white;
-        border: none;
-        padding: 6px 8px;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        font-size: 0.8rem;
-        min-width: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
 
         &:hover:not(:disabled) {
           background-color: #c82333;
-          transform: translateY(-1px);
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        &:active:not(:disabled) {
-          transform: translateY(0);
-          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-        }
-
-        &:disabled {
-          background-color: #6c757d;
-          cursor: not-allowed;
-          opacity: 0.6;
-          transform: none;
-          box-shadow: none;
-          
-          &::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-          }
-        }
-
-        i {
-          font-size: 0.75rem;
         }
       }
     }
@@ -792,10 +763,27 @@
   .actions {
     flex-wrap: wrap;
     gap: 4px;
+    min-width: 180px;
 
-    .approval-actions {
+    .btn-action {
+      width: 28px;
+      height: 28px;
+      font-size: 0.8rem;
+
+      i {
+        font-size: 0.8rem;
+      }
+    }
+
+    .status-actions {
       margin-left: 4px;
       padding-left: 4px;
+      gap: 3px;
+
+      .btn-action {
+        width: 26px;
+        height: 26px;
+      }
     }
   }
 

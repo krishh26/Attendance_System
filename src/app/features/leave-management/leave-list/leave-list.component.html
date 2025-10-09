@@ -2,12 +2,11 @@
   <div class="header">
     <h1>Leave Requests</h1>
     <div class="header-actions">
-      <button class="btn-refresh" (click)="refreshData()" title="Refresh">
+      <button class="btn-refresh" (click)="refreshData()" title="Refresh Data">
         <i class="fas fa-sync-alt"></i>
       </button>
-      <button class="btn-add" (click)="createLeaveRequest()" *ngIf="canCreate()">
+      <button class="btn-add" (click)="createLeaveRequest()" *ngIf="canCreate()" title="Create New Leave Request">
         <i class="fas fa-plus"></i>
-        New Leave Request
       </button>
     </div>
   </div>
@@ -99,9 +98,8 @@
           (change)="onDateFilterChange()">
       </div>
 
-      <button class="btn-clear-filters" (click)="clearFilters()">
+      <button class="btn-clear-filters" (click)="clearFilters()" title="Clear All Filters">
         <i class="fas fa-times"></i>
-        Clear Filters
       </button>
     </div>
 
@@ -198,47 +196,54 @@
           </td>
           <td>{{ formatDateTime(leave.createdAt) }}</td>
           <td class="actions">
-            <button class="btn-icon view" title="View Details" (click)="viewLeaveDetails(leave._id)">
+            <!-- View Details Button -->
+            <button
+              class="btn-action btn-view"
+              title="View Leave Details"
+              (click)="viewLeaveDetails(leave._id)"
+              [disabled]="!canView()">
               <i class="fas fa-eye"></i>
             </button>
+
+            <!-- Edit Button (only for pending requests) -->
             <button
-              class="btn-icon edit"
-              [title]="canEdit(leave) ? 'Edit this leave request' : 'Only pending requests can be edited'"
+              class="btn-action btn-edit"
+              [title]="getEditButtonTooltip(leave)"
               *ngIf="canEdit(leave)"
               (click)="editLeaveRequest(leave)"
-              [disabled]="!canEdit(leave)">
+              [disabled]="leave.status !== 'pending'">
               <i class="fas fa-edit"></i>
             </button>
+
+            <!-- Cancel Button (only for pending requests) -->
             <button
-              class="btn-icon delete"
-              [title]="canDelete(leave) ? 'Delete this leave request' : 'Only pending requests can be deleted'"
-              *ngIf="canDelete(leave)"
-              (click)="deleteLeaveRequest(leave)"
-              [disabled]="!canDelete(leave)">
-              <i class="fas fa-trash"></i>
+              class="btn-action btn-cancel"
+              [title]="getCancelButtonTooltip(leave)"
+              *ngIf="leave.status === 'pending'"
+              (click)="cancelLeaveRequest(leave)">
+              <i class="fas fa-ban"></i>
             </button>
+
+            <!-- Status Management Button (for managers/admins) -->
             <button
-              class="btn-icon status"
-              title="Update Status"
-              (click)="openStatusModal(leave)">
+              *ngIf="canApproveReject(leave)"
+              class="btn-action btn-status"
+              [title]="getStatusButtonTooltip(leave)"
+              (click)="openStatusChangeModal(leave)"
+              [disabled]="leave.status !== 'pending'">
               <i class="fas fa-cog"></i>
             </button>
-            <div *ngIf="canApproveReject(leave)" class="approval-actions">
-              <button 
-                class="btn-icon approve" 
-                [title]="leave.status !== 'pending' ? 'Only pending requests can be approved' : 'Approve this leave request'"
-                (click)="approveLeaveRequest(leave)"
-                [disabled]="leave.status !== 'pending'">
-                <i class="fas fa-check"></i>
-              </button>
-              <button 
-                class="btn-icon reject" 
-                [title]="leave.status !== 'pending' ? 'Only pending requests can be rejected' : 'Reject this leave request'"
-                (click)="rejectLeaveRequest(leave)"
-                [disabled]="leave.status !== 'pending'">
-                <i class="fas fa-times"></i>
-              </button>
-            </div>
+
+            <!-- Delete Button (only for admins and pending requests) -->
+            <button
+              class="btn-action btn-delete"
+              [title]="getDeleteButtonTooltip(leave)"
+              *ngIf="canDelete(leave)"
+              (click)="deleteLeaveRequest(leave)"
+              [disabled]="leave.status !== 'pending' || isButtonLoading('delete-' + leave._id)">
+              <i class="fas fa-trash" *ngIf="!isButtonLoading('delete-' + leave._id)"></i>
+              <i class="fas fa-spinner fa-spin" *ngIf="isButtonLoading('delete-' + leave._id)"></i>
+            </button>
           </td>
         </tr>
       </tbody>
@@ -304,7 +309,28 @@
   <app-status-update-modal
     [isOpen]="showStatusModal"
     [leaveRequest]="selectedLeaveRequest"
+    [defaultStatus]="statusModalInitial"
     (closeModal)="closeStatusModal()"
     (statusUpdated)="onStatusUpdated($event)">
   </app-status-update-modal>
+
+  <!-- Leave Form Modal -->
+  <app-leave-form-modal
+    [isOpen]="showLeaveFormModal"
+    [leaveRequest]="selectedLeaveRequest"
+    [viewMode]="isViewMode"
+    (closeModal)="closeLeaveFormModal()"
+    (leaveSaved)="onLeaveSaved($event)">
+  </app-leave-form-modal>
+
+  <!-- Confirm Modal -->
+  <app-confirm-modal
+    [isOpen]="showConfirmModal"
+    [title]="confirmTitle"
+    [message]="confirmMessage"
+    [confirmText]="confirmButtonText"
+    [loading]="confirmLoading"
+    (cancel)="onConfirmModalCancel()"
+    (confirm)="onConfirmModalConfirm()">
+  </app-confirm-modal>
 </div>

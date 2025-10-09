@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import { LeaveService, LeaveRequest, LeaveListParams } from '../services/leave.service';
 import { StatusUpdateModalComponent } from './status-update-modal/status-update-modal.component';
+import { LeaveFormModalComponent } from './leave-form-modal/leave-form-modal.component';
+import { ConfirmModalComponent } from './confirm-modal/confirm-modal.component';
 import { PermissionService } from '../../../shared/services/permission.service';
 
 @Component({
@@ -11,7 +13,7 @@ import { PermissionService } from '../../../shared/services/permission.service';
   templateUrl: './leave-list.component.html',
   styleUrls: ['./leave-list.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, StatusUpdateModalComponent]
+  imports: [CommonModule, FormsModule, StatusUpdateModalComponent, LeaveFormModalComponent, ConfirmModalComponent]
 })
 export class LeaveListComponent implements OnInit, OnDestroy {
   // Data
@@ -39,10 +41,26 @@ export class LeaveListComponent implements OnInit, OnDestroy {
   selectedLeaveRequest: LeaveRequest | null = null;
   statusUpdateLoading = false;
   showImportModal = false;
+  showLeaveFormModal = false;
+  isViewMode = false; // Track if modal is in view mode
+
+  // Button loading states
+  buttonLoadingStates: { [key: string]: boolean } = {};
+
+  // Confirm modal state
+  showConfirmModal = false;
+  confirmLoading = false;
+  confirmTitle = 'Confirm Action';
+  confirmMessage = '';
+  confirmButtonText = 'Confirm';
+  private confirmAction: null | { type: 'cancel' | 'delete'; leave: LeaveRequest } = null;
 
   // Sorting
   sortBy = '';
   sortOrder: 'asc' | 'desc' = 'asc';
+
+  // Status modal defaults
+  statusModalInitial: 'approved' | 'rejected' | 'cancelled' = 'approved';
 
   // Search debouncing
   private searchSubject = new Subject<string>();
@@ -101,33 +119,45 @@ export class LeaveListComponent implements OnInit, OnDestroy {
     return this.permissionService.hasPermission('leave', 'read');
   }
 
-  // Edit leave request
-  editLeaveRequest(leaveRequest: LeaveRequest): void {
-    if (!this.canEdit(leaveRequest)) {
-      console.warn('User does not have permission to edit leave requests');
-      return;
+  // Tooltip methods for better UX
+  getEditButtonTooltip(leave: LeaveRequest): string {
+    if (leave.status !== 'pending') {
+      return 'Only pending requests can be edited';
     }
-
-    console.log('Editing leave request:', leaveRequest._id);
-
-    // You can implement navigation to edit page or open edit modal here
-    // For now, we'll show an alert with the leave request details
-    const editDetails = `
-      Leave Request Details:
-      - Employee: ${this.getEmployeeName(leaveRequest)}
-      - Leave Type: ${this.getLeaveTypeText(leaveRequest.leaveType)}
-      - Start Date: ${this.formatDate(leaveRequest.startDate)}
-      - End Date: ${this.formatDate(leaveRequest.endDate)}
-      - Reason: ${leaveRequest.reason}
-      - Status: ${this.getStatusText(leaveRequest.status)}
-      `;
-
-    alert(editDetails);
-
-    // TODO: Implement actual edit functionality
-    // Example: this.router.navigate(['/admin/leave/edit', leaveRequest._id]);
-    // Or: this.openEditModal(leaveRequest);
+    return 'Edit Leave Request';
   }
+
+  getCancelButtonTooltip(leave: LeaveRequest): string {
+    if (leave.status !== 'pending') {
+      return 'Only pending requests can be cancelled';
+    }
+    return 'Cancel Leave Request';
+  }
+
+  getStatusButtonTooltip(leave: LeaveRequest): string {
+    if (leave.status !== 'pending') {
+      return 'Only pending requests can have status changed';
+    }
+    return 'Change Leave Request Status';
+  }
+
+  getDeleteButtonTooltip(leave: LeaveRequest): string {
+    if (leave.status !== 'pending') {
+      return 'Only pending requests can be deleted';
+    }
+    return 'Delete Leave Request';
+  }
+
+  // Button loading state helpers
+  setButtonLoading(buttonId: string, loading: boolean): void {
+    this.buttonLoadingStates[buttonId] = loading;
+  }
+
+  isButtonLoading(buttonId: string): boolean {
+    return this.buttonLoadingStates[buttonId] || false;
+  }
+
+  // (Removed duplicate editLeaveRequest implementation; see method below which opens the modal)
 
   // Delete leave request
   deleteLeaveRequest(leaveRequest: LeaveRequest): void {
@@ -136,54 +166,65 @@ export class LeaveListComponent implements OnInit, OnDestroy {
       return;
     }
 
-    console.log('Deleting leave request:', leaveRequest._id);
+    if (leaveRequest.status !== 'pending') {
+      console.warn('Only pending leave requests can be deleted');
+      return;
+    }
 
-    // Confirmation dialog
-    const confirmDelete = confirm(
-      `Are you sure you want to delete this leave request for ${this.getEmployeeName(leaveRequest)}?\n\n` +
+    // Open confirmation modal instead of native confirm
+    this.confirmTitle = 'Delete Leave Request';
+    this.confirmMessage = `Are you sure you want to delete this leave request for ${this.getEmployeeName(leaveRequest)}?\n\n` +
       `Leave Type: ${this.getLeaveTypeText(leaveRequest.leaveType)}\n` +
       `Dates: ${this.formatDate(leaveRequest.startDate)} - ${this.formatDate(leaveRequest.endDate)}\n` +
       `Reason: ${leaveRequest.reason}\n\n` +
-      `This action cannot be undone.`
-    );
-
-    if (confirmDelete) {
-      this.leaveService.deleteLeaveRequest(leaveRequest._id)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: (response) => {
-            console.log('Leave request deleted successfully:', response);
-            this.loadLeaveRequests(); // Refresh the list
-
-            // Show success message
-            alert('Leave request deleted successfully!');
-          },
-          error: (error) => {
-            console.error('Error deleting leave request:', error);
-            console.error('Error details:', {
-              status: error.status,
-              statusText: error.statusText,
-              message: error.message,
-              url: error.url,
-              error: error.error
-            });
-
-            // Show error message
-            this.error = `Failed to delete leave request: ${error.status} - ${error.statusText || error.message}`;
-          }
-        });
-    }
+      `This action cannot be undone.`;
+    this.confirmButtonText = 'Yes, Delete';
+    this.confirmAction = { type: 'delete', leave: leaveRequest };
+    this.showConfirmModal = true;
   }
 
   // Create new leave request
   createLeaveRequest(): void {
     if (this.canCreate()) {
-      // Navigate to create leave request page
-      console.log('Navigating to create leave request');
-      // this.router.navigate(['/admin/leave/create']);
+      this.isViewMode = false; // Ensure create mode
+      this.openLeaveFormModal();
     } else {
       console.warn('User does not have permission to create leave requests');
     }
+  }
+
+  // Leave form modal handlers
+  openLeaveFormModal(leaveRequest?: LeaveRequest): void {
+    this.selectedLeaveRequest = leaveRequest || null;
+    this.showLeaveFormModal = true;
+    // isViewMode is set by the calling method (viewLeaveDetails or editLeaveRequest)
+  }
+
+  closeLeaveFormModal(): void {
+    this.showLeaveFormModal = false;
+    this.selectedLeaveRequest = null;
+    this.isViewMode = false; // Reset view mode
+  }
+
+  onLeaveSaved(leaveRequest: LeaveRequest): void {
+    this.closeLeaveFormModal();
+    this.loadLeaveRequests(); // Refresh the list
+  }
+
+  // Edit leave request
+  editLeaveRequest(leaveRequest: LeaveRequest): void {
+    if (!this.canEdit(leaveRequest)) {
+      console.warn('User does not have permission to edit leave requests');
+      return;
+    }
+
+    if (leaveRequest.status !== 'pending') {
+      console.warn('Only pending leave requests can be edited');
+      return;
+    }
+
+    this.isViewMode = false; // Ensure edit mode
+    this.openLeaveFormModal(leaveRequest);
   }
 
   // Load leave requests from API
@@ -418,8 +459,22 @@ export class LeaveListComponent implements OnInit, OnDestroy {
 
   // View leave details
   viewLeaveDetails(leaveId: string): void {
+    if (!this.canView()) {
+      console.warn('User does not have permission to view leave details');
+      return;
+    }
+
     console.log('Viewing leave details for:', leaveId);
-    // Implement view details functionality
+    // Find the leave request
+    const leaveRequest = this.leaveRequests.find(leave => leave._id === leaveId);
+    if (leaveRequest) {
+      // Open the leave form modal in view-only mode
+      this.isViewMode = true;
+      this.openLeaveFormModal(leaveRequest);
+    } else {
+      console.error('Leave request not found:', leaveId);
+      this.error = 'Leave request not found';
+    }
   }
 
   // Get profile image
@@ -431,8 +486,9 @@ export class LeaveListComponent implements OnInit, OnDestroy {
   }
 
   // Status update handling
-  openStatusModal(leaveRequest: LeaveRequest): void {
+  openStatusModal(leaveRequest: LeaveRequest, initialStatus: 'approved' | 'rejected' | 'cancelled' = 'approved'): void {
     this.selectedLeaveRequest = leaveRequest;
+    this.statusModalInitial = initialStatus;
     this.showStatusModal = true;
   }
 
@@ -465,94 +521,91 @@ export class LeaveListComponent implements OnInit, OnDestroy {
       });
   }
 
-  // Approve leave request
-  approveLeaveRequest(leaveRequest: LeaveRequest): void {
+  // Open status change modal (unified for approve/reject)
+  openStatusChangeModal(leaveRequest: LeaveRequest): void {
     if (!this.canApproveReject(leaveRequest)) {
-      console.warn('User does not have permission to approve leave requests');
+      console.warn('User does not have permission to change leave request status');
       return;
     }
 
     if (leaveRequest.status !== 'pending') {
-      console.warn('Only pending leave requests can be approved');
+      console.warn('Only pending leave requests can have status changed');
       return;
     }
 
-    // You can add a confirmation dialog here if needed
-    if (confirm(`Are you sure you want to approve this leave request for ${this.getEmployeeName(leaveRequest)}?`)) {
-      console.log('Approving leave request:', leaveRequest._id);
+    // Open status modal with default to approved
+    this.openStatusModal(leaveRequest, 'approved');
+  }
 
-      this.leaveService.approveLeaveRequest(leaveRequest._id)
+  // Cancel leave request
+  cancelLeaveRequest(leaveRequest: LeaveRequest): void {
+    if (leaveRequest.status !== 'pending') {
+      console.warn('Only pending leave requests can be cancelled');
+      return;
+    }
+
+    // Open confirmation modal instead of native confirm
+    this.confirmTitle = 'Cancel Leave Request';
+    this.confirmMessage = `Are you sure you want to cancel this leave request?\n\n` +
+      `Employee: ${this.getEmployeeName(leaveRequest)}\n` +
+      `Leave Type: ${this.getLeaveTypeText(leaveRequest.leaveType)}\n` +
+      `Dates: ${this.formatDate(leaveRequest.startDate)} - ${this.formatDate(leaveRequest.endDate)}\n` +
+      `Reason: ${leaveRequest.reason}`;
+    this.confirmButtonText = 'Yes, Cancel';
+    this.confirmAction = { type: 'cancel', leave: leaveRequest };
+    this.showConfirmModal = true;
+  }
+
+  // Confirm modal handlers
+  onConfirmModalCancel(): void {
+    this.showConfirmModal = false;
+    this.confirmLoading = false;
+    this.confirmAction = null;
+  }
+
+  onConfirmModalConfirm(): void {
+    if (!this.confirmAction) return;
+    this.confirmLoading = true;
+    const { type, leave } = this.confirmAction;
+
+    if (type === 'cancel') {
+      this.leaveService.cancelLeaveRequest(leave._id)
         .pipe(takeUntil(this.destroy$))
         .subscribe({
-          next: (response) => {
-            console.log('Leave request approved successfully:', response);
-            this.loadLeaveRequests(); // Refresh the list
-
-            // Show success message (you can implement a toast/notification system)
-            alert('Leave request approved successfully!');
+          next: () => {
+            this.confirmLoading = false;
+            this.showConfirmModal = false;
+            this.loadLeaveRequests();
           },
           error: (error) => {
-            console.error('Error approving leave request:', error);
-            console.error('Error details:', {
-              status: error.status,
-              statusText: error.statusText,
-              message: error.message,
-              url: error.url,
-              error: error.error
-            });
+            this.confirmLoading = false;
+            console.error('Error cancelling leave request:', error);
+            this.error = `Failed to cancel leave request: ${error.status} - ${error.statusText || error.message}`;
+          }
+        });
+      return;
+    }
 
-            // Show error message
-            this.error = `Failed to approve leave request: ${error.status} - ${error.statusText || error.message}`;
+    if (type === 'delete') {
+      const buttonId = `delete-${leave._id}`;
+      this.setButtonLoading(buttonId, true);
+      this.leaveService.deleteLeaveRequest(leave._id)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: () => {
+            this.confirmLoading = false;
+            this.setButtonLoading(buttonId, false);
+            this.showConfirmModal = false;
+            this.loadLeaveRequests();
+          },
+          error: (error) => {
+            this.confirmLoading = false;
+            this.setButtonLoading(buttonId, false);
+            console.error('Error deleting leave request:', error);
+            this.error = `Failed to delete leave request: ${error.status} - ${error.statusText || error.message}`;
           }
         });
     }
   }
 
-  // Reject leave request
-  rejectLeaveRequest(leaveRequest: LeaveRequest): void {
-    if (!this.canApproveReject(leaveRequest)) {
-      console.warn('User does not have permission to reject leave requests');
-      return;
-    }
-
-    if (leaveRequest.status !== 'pending') {
-      console.warn('Only pending leave requests can be rejected');
-      return;
-    }
-
-    // Get rejection reason from user
-    const rejectionReason = prompt(`Please provide a reason for rejecting this leave request for ${this.getEmployeeName(leaveRequest)}:`);
-
-    if (rejectionReason && rejectionReason.trim()) {
-      console.log('Rejecting leave request:', leaveRequest._id, 'with reason:', rejectionReason);
-
-      this.leaveService.rejectLeaveRequest(leaveRequest._id, rejectionReason.trim())
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: (response) => {
-            console.log('Leave request rejected successfully:', response);
-            this.loadLeaveRequests(); // Refresh the list
-
-            // Show success message (you can implement a toast/notification system)
-            alert('Leave request rejected successfully!');
-          },
-          error: (error) => {
-            console.error('Error rejecting leave request:', error);
-            console.error('Error details:', {
-              status: error.status,
-              statusText: error.statusText,
-              message: error.message,
-              url: error.url,
-              error: error.error
-            });
-
-            // Show error message
-            this.error = `Failed to reject leave request: ${error.status} - ${error.statusText || error.message}`;
-          }
-        });
-    } else if (rejectionReason !== null) {
-      // User clicked cancel or provided empty reason
-      alert('Rejection reason is required to reject a leave request.');
-    }
-  }
 }
