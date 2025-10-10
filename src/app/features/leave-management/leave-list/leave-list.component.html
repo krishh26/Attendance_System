@@ -17,92 +17,122 @@
   </div>
 
   <div class="filters">
-    <div class="search-box">
-      <i class="fas fa-search"></i>
-      <input
-        type="text"
-        placeholder="Search leave requests..."
-        [value]="searchTerm"
-        (input)="onSearchChange($event)">
+    <div class="filter-row single-line">
+      <!-- Status Filter Buttons -->
+      <div class="filter-group status-group">
+        <div class="filter-buttons">
+          <button
+            class="btn-filter"
+            [class.active]="statusFilter === 'all'"
+            (click)="onStatusFilterChange('all')">
+            <i class="fas fa-list"></i>
+            All
+          </button>
+          <button
+            class="btn-filter"
+            [class.active]="statusFilter === 'pending'"
+            (click)="onStatusFilterChange('pending')">
+            <i class="fas fa-clock"></i>
+            Pending
+          </button>
+          <button
+            class="btn-filter"
+            [class.active]="statusFilter === 'approved'"
+            (click)="onStatusFilterChange('approved')">
+            <i class="fas fa-check-circle"></i>
+            Approved
+          </button>
+          <button
+            class="btn-filter"
+            [class.active]="statusFilter === 'rejected'"
+            (click)="onStatusFilterChange('rejected')">
+            <i class="fas fa-times-circle"></i>
+            Rejected
+          </button>
+          <button
+            class="btn-filter"
+            [class.active]="statusFilter === 'cancelled'"
+            (click)="onStatusFilterChange('cancelled')">
+            <i class="fas fa-ban"></i>
+            Cancelled
+          </button>
+        </div>
+      </div>
+
+      <!-- Leave Type Filter -->
+      <div class="filter-group type-group">
+        <div class="type-filter">
+          <label for="leaveTypeFilter">
+            <i class="fas fa-calendar-check"></i>
+            Type
+          </label>
+          <select id="leaveTypeFilter" [(ngModel)]="leaveTypeFilter" (change)="onLeaveTypeFilterChange()">
+            <option value="all">All Types</option>
+            <option value="annual">Annual</option>
+            <option value="casual">Casual</option>
+            <option value="sick">Sick</option>
+            <option value="full-day">Full Day</option>
+            <option value="half-day">Half Day</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Half Day Filter -->
+      <div class="filter-group halfday-group">
+        <div class="halfday-filter">
+          <label for="halfDayFilter">
+            <i class="fas fa-clock"></i>
+            Duration
+          </label>
+          <select id="halfDayFilter" [(ngModel)]="halfDayFilter" (change)="onHalfDayFilterChange()">
+            <option value="all">All</option>
+            <option value="true">Half Day</option>
+            <option value="false">Full Day</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Start Date Filter -->
+      <div class="filter-group startdate-group">
+        <div class="startdate-filter">
+          <label for="startDateFilter">
+            <i class="fas fa-calendar-alt"></i>
+            Start Date
+          </label>
+          <input
+            type="date"
+            id="startDateFilter"
+            [(ngModel)]="startDateFilter"
+            (change)="onDateFilterChange()">
+        </div>
+      </div>
+
+      <!-- End Date Filter -->
+      <div class="filter-group enddate-group">
+        <div class="enddate-filter">
+          <label for="endDateFilter">
+            <i class="fas fa-calendar-alt"></i>
+            End Date
+          </label>
+          <input
+            type="date"
+            id="endDateFilter"
+            [(ngModel)]="endDateFilter"
+            (change)="onDateFilterChange()">
+        </div>
+      </div>
+
+      <!-- Clear Filters Button -->
+      <div class="filter-group clear-group">
+        <div class="clear-filters">
+          <button class="btn-clear-filters" (click)="clearFilters()" title="Clear All Filters">
+            <i class="fas fa-times"></i>
+            Clear
+          </button>
+        </div>
+      </div>
     </div>
-
-    <div class="filter-buttons">
-      <button
-        class="btn-filter"
-        [class.active]="statusFilter === 'all'"
-        (click)="onStatusFilterChange('all')">
-        All
-      </button>
-      <button
-        class="btn-filter"
-        [class.active]="statusFilter === 'pending'"
-        (click)="onStatusFilterChange('pending')">
-        Pending
-      </button>
-      <button
-        class="btn-filter"
-        [class.active]="statusFilter === 'approved'"
-        (click)="onStatusFilterChange('approved')">
-        Approved
-      </button>
-      <button
-        class="btn-filter"
-        [class.active]="statusFilter === 'rejected'"
-        (click)="onStatusFilterChange('rejected')">
-        Rejected
-      </button>
-      <button
-        class="btn-filter"
-        [class.active]="statusFilter === 'cancelled'"
-        (click)="onStatusFilterChange('cancelled')">
-        Cancelled
-      </button>
-    </div>
-
-    <div class="filter-controls">
-      <div class="filter-group">
-        <label>Leave Type:</label>
-        <select [(ngModel)]="leaveTypeFilter" (change)="onLeaveTypeFilterChange()">
-          <option value="all">All Types</option>
-          <option value="annual">Annual Leave</option>
-          <option value="casual">Casual Leave</option>
-          <option value="sick">Sick Leave</option>
-          <option value="full-day">Full Day</option>
-          <option value="half-day">Half Day</option>
-          <option value="other">Other</option>
-        </select>
-      </div>
-
-      <div class="filter-group">
-        <label>Half Day:</label>
-        <select [(ngModel)]="halfDayFilter" (change)="onHalfDayFilterChange()">
-          <option value="all">All</option>
-          <option value="true">Half Day</option>
-          <option value="false">Full Day</option>
-        </select>
-      </div>
-
-      <div class="filter-group">
-        <label>Start Date:</label>
-        <input
-          type="date"
-          [(ngModel)]="startDateFilter"
-          (change)="onDateFilterChange()">
-      </div>
-
-      <div class="filter-group">
-        <label>End Date:</label>
-        <input
-          type="date"
-          [(ngModel)]="endDateFilter"
-          (change)="onDateFilterChange()">
-      </div>
-
-      <button class="btn-clear-filters" (click)="clearFilters()" title="Clear All Filters">
-        <i class="fas fa-times"></i>
-      </button>
-    </div>
-
   </div>
 
   <!-- Results meta -->

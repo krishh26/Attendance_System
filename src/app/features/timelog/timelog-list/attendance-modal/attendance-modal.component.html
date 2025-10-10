@@ -1,0 +1,78 @@
+<div class="modal-overlay" *ngIf="isOpen" (click)="onClose()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>
+        <i [class]="getActionIcon()" [style.color]="getActionColor()"></i>
+        {{ getActionTitle() }}
+      </h2>
+      <button class="close-btn" (click)="onClose()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Location Section -->
+      <div class="location-section">
+        <div class="location-toggle">
+          <label class="toggle-label">
+            <input
+              type="checkbox"
+              [(ngModel)]="useLocation"
+              (change)="onLocationToggle()"
+              [disabled]="loading">
+            <span class="toggle-text">Use current location</span>
+          </label>
+        </div>
+
+        <div *ngIf="useLocation" class="location-info">
+          <div *ngIf="latitude && longitude" class="location-success">
+            <i class="fas fa-map-marker-alt"></i>
+            <span>Location: {{ latitude | number:'1.4-4' }}, {{ longitude | number:'1.4-4' }}</span>
+          </div>
+          <div *ngIf="locationError" class="location-error">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>{{ locationError }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Info -->
+      <div class="action-info">
+        <div class="info-card" [style.border-color]="getActionColor()">
+          <i [class]="getActionIcon()" [style.color]="getActionColor()"></i>
+          <div class="info-content">
+            <h3>{{ getActionTitle() }} Information</h3>
+            <p *ngIf="action === 'checkin'">
+              You are about to check in for today. This will start a new attendance session.
+            </p>
+            <p *ngIf="action === 'checkout'">
+              You are about to check out from your current session. This will end your active attendance session.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error Message -->
+      <div *ngIf="error" class="error-message">
+        <i class="fas fa-exclamation-triangle"></i>
+        {{ error }}
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="onClose()" [disabled]="loading">
+        Cancel
+      </button>
+      <button
+        class="btn-action"
+        [style.background-color]="getActionColor()"
+        (click)="onActionClick()"
+        [disabled]="loading">
+        <i *ngIf="loading" class="fas fa-spinner fa-spin"></i>
+        <i *ngIf="!loading" [class]="getActionIcon()"></i>
+        <span *ngIf="loading">Processing...</span>
+        <span *ngIf="!loading">{{ getActionTitle() }}</span>
+      </button>
+    </div>
+  </div>
+</div>
