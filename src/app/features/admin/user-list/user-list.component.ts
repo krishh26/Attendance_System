@@ -166,43 +166,33 @@ export class UserListComponent implements OnInit, OnDestroy {
     this.userService.getUsers(params)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (response) => {
-          let workingList: User[] = Array.isArray(response?.data) ? response.data : [];
+        next: (response: any) => {
+          // Extract users from nested data structure: response.data.data
+          let workingList: User[] = Array.isArray(response?.data?.data) ? response.data.data : [];
 
-          // Client-side filter by status
+          // Client-side filter by status (if needed, can be moved to backend later)
           if (this.statusFilter !== 'all') {
             const isActive = this.statusFilter === 'active';
             workingList = workingList.filter(user => user.isActive === isActive);
           }
 
-          // Client-side sort fallback
-          const compare = (a: User, b: User): number => {
-            let aVal: any;
-            let bVal: any;
-            if (this.sortBy === 'firstname') {
-              aVal = (a.firstname || '').toLowerCase();
-              bVal = (b.firstname || '').toLowerCase();
-            } else if (this.sortBy === 'email') {
-              aVal = (a.email || '').toLowerCase();
-              bVal = (b.email || '').toLowerCase();
-            } else if (this.sortBy === 'createdAt') {
-              aVal = a.createdAt ? new Date(a.createdAt as any).getTime() : 0;
-              bVal = b.createdAt ? new Date(b.createdAt as any).getTime() : 0;
-            } else {
-              aVal = (a as any)[this.sortBy];
-              bVal = (b as any)[this.sortBy];
-            }
-            if (aVal < bVal) return -1;
-            if (aVal > bVal) return 1;
-            return 0;
-          };
-          workingList = [...workingList].sort((a, b) => this.sortOrder === 'asc' ? compare(a, b) : compare(b, a));
+          this.users = workingList;
 
-          // Pagination slice
-          this.totalUsers = workingList.length;
-          const startIndex = (this.currentPage - 1) * this.pageSize;
-          const endIndex = startIndex + this.pageSize;
-          this.users = workingList.slice(startIndex, endIndex);
+          // Update pagination from backend response
+          if (response?.pagination) {
+            this.totalUsers = response.pagination.total || 0;
+            // Sync current page and page size with backend if they differ
+            if (response.pagination.page !== undefined) {
+              this.currentPage = response.pagination.page;
+            }
+            if (response.pagination.limit !== undefined) {
+              this.pageSize = response.pagination.limit;
+            }
+          } else {
+            // Fallback if pagination is not in response
+            this.totalUsers = workingList.length;
+          }
+
           this.loading = false;
         },
         error: (error) => {
