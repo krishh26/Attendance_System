@@ -6,7 +6,7 @@ import { DemoLeaveService } from './demo-leave.service';
 // Leave Request Interface based on API response
 export interface LeaveRequest {
   _id: string;
-  userId: string | null;
+  userId: string | any;
   leaveType: 'full-day' | 'half-day' | 'sick' | 'casual' | 'annual' | 'other';
   startDate: string;
   endDate: string;
@@ -71,10 +71,10 @@ export class LeaveService {
   // Get leave requests with filters
   getLeaveRequests(params: LeaveListParams = {}): Observable<LeaveListResponse> {
     let endpoint = '/leave-management/leave-requests';
-    
+
     // Build query string
     const queryParams = new URLSearchParams();
-    
+
     if (params.page) queryParams.append('page', params.page.toString());
     if (params.limit) queryParams.append('limit', params.limit.toString());
     if (params.status) queryParams.append('status', params.status);
@@ -114,8 +114,7 @@ export class LeaveService {
   createLeaveRequest(data: Partial<LeaveRequest>): Observable<any> {
     return this.apiService.post('/leave-management/leave-requests', data).pipe(
       catchError((error) => {
-        console.warn('API call failed for creating leave request:', error);
-        return of({ success: false, message: 'Demo mode: Leave request creation simulated' });
+        throw error;
       })
     );
   }
@@ -124,8 +123,7 @@ export class LeaveService {
   updateLeaveRequest(id: string, data: Partial<LeaveRequest>): Observable<any> {
     return this.apiService.put(`/leave-management/leave-requests/${id}`, data).pipe(
       catchError((error) => {
-        console.warn('API call failed for updating leave request:', error);
-        return of({ success: false, message: 'Demo mode: Leave request update simulated' });
+        throw error;
       })
     );
   }
@@ -134,38 +132,49 @@ export class LeaveService {
   deleteLeaveRequest(id: string): Observable<any> {
     return this.apiService.delete(`/leave-management/leave-requests/${id}`).pipe(
       catchError((error) => {
-        console.warn('API call failed for deleting leave request:', error);
-        return of({ success: false, message: 'Demo mode: Leave request deletion simulated' });
+        throw error;
       })
     );
   }
 
   // Approve leave request
   approveLeaveRequest(id: string, notes?: string): Observable<any> {
-    return this.apiService.put(`/leave-management/leave-requests/${id}/approve`, { notes }).pipe(
+    return this.apiService.put(`/leave-management/leave-requests/${id}/status`, {
+      status: 'approved',
+      notes
+    }).pipe(
       catchError((error) => {
-        console.warn('API call failed for approving leave request:', error);
-        return of({ success: false, message: 'Demo mode: Leave request approval simulated' });
+        throw error;
       })
     );
   }
 
   // Reject leave request
-  rejectLeaveRequest(id: string, notes?: string): Observable<any> {
-    return this.apiService.put(`/leave-management/leave-requests/${id}/reject`, { rejectionReason: notes }).pipe(
+  rejectLeaveRequest(id: string, rejectionReason?: string): Observable<any> {
+    return this.apiService.put(`/leave-management/leave-requests/${id}/status`, {
+      status: 'rejected',
+      rejectionReason
+    }).pipe(
       catchError((error) => {
-        console.warn('API call failed for rejecting leave request:', error);
-        return of({ success: false, message: 'Demo mode: Leave request rejection simulated' });
+        throw error;
       })
     );
   }
 
   // Update leave request status (approve, reject, cancel)
   updateLeaveRequestStatus(id: string, statusData: { status: string; notes?: string; rejectionReason?: string }): Observable<any> {
-    return this.apiService.patch(`/leave-management/leave-requests/${id}/status`, statusData).pipe(
+    return this.apiService.put(`/leave-management/leave-requests/${id}/status`, statusData).pipe(
       catchError((error) => {
-        console.warn('API call failed for updating leave request status:', error);
-        return of({ success: false, message: 'Demo mode: Leave request status update simulated' });
+        throw error;
+      })
+    );
+  }
+
+  // Cancel leave request
+  cancelLeaveRequest(id: string): Observable<any> {
+    return this.apiService.put(`/leave-management/leave-requests/${id}/cancel`, {}).pipe(
+      catchError((error) => {
+        throw error;
       })
     );
   }
