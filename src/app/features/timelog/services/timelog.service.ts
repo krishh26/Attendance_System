@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { ApiService } from '../../../shared/services/api.service';
 
 export interface TimeLogEntry {
@@ -7,7 +8,6 @@ export interface TimeLogEntry {
   userId: string | any; // Can be string ID or populated user object
   date: string;
   checkInTime: string;
-  checkOutTime?: string;
   checkOutTime?: string;
   isCheckedOut: boolean;
   totalHours?: number;
@@ -60,7 +60,7 @@ export class TimelogService {
     const endpoint = `/attendance/admin/all-users?date=${date}&page=${page}&limit=${limit}`;
     
     return this.apiService.get<TimeLogResponse>(endpoint).pipe(
-      catchError((error) => {
+      catchError((error: any) => {
         console.warn('API call failed for time logs:', error);
         // Return mock data for demo purposes
         return of(this.getMockTimeLogResponse(params));
@@ -195,28 +195,5 @@ export class TimelogService {
 
   getStatusText(status: string): string {
     return status.charAt(0).toUpperCase() + status.slice(1);
-  }
-
-  formatDateForDisplay(dateString: string): string {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  }
-
-  formatTimeForDisplay(timeString: string): string {
-    const date = new Date(timeString);
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    });
-  }
-
-  getTodayDate(): string {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
   }
 }
