@@ -344,7 +344,7 @@ export class LeaveListComponent implements OnInit, OnDestroy {
       'half-day': 'Half Day',
       'sick': 'Sick Leave',
       'casual': 'Casual Leave',
-      'annual': 'Annual Leave',
+      'annual': 'Earn Leave',
       'other': 'Other'
     };
     return typeMap[leaveType] || leaveType;

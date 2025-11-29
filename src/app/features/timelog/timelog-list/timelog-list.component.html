@@ -195,7 +195,7 @@
             <td>{{ formatTime(entry.checkInTime) }}</td>
             <td>
               <span *ngIf="isCheckedOut(entry); else notCheckedOut">
-                {{ formatTime(entry.updatedAt) }}
+                {{ formatTime(entry.checkOutTime) }}
               </span>
               <ng-template #notCheckedOut>
                 <span class="not-checked-out">Not checked out</span>

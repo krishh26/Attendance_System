@@ -8,6 +8,7 @@ export interface TimeLogEntry {
   userId: string | null;
   date: string;
   checkInTime: string;
+  checkOutTime?: string;
   isCheckedOut: boolean;
   status: string;
   sessionNumber: number;
@@ -139,13 +140,36 @@ export class TimelogService {
     });
   }
 
-  // Format time for display
-  formatTimeForDisplay(timeString: string): string {
-    return new Date(timeString).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    });
+  // Format time for display as "h.mm am/pm" format (e.g., "1.03 am")
+  // Note: API already returns time in IST, so extract time components directly from string
+  formatTimeForDisplay(timeString: string | undefined | null): string {
+    if (!timeString) return '';
+    
+    try {
+      // Extract hours and minutes directly from ISO string (format: YYYY-MM-DDTHH:mm:ss.sssZ)
+      // Since API already returns IST time, we parse the string directly
+      const timeMatch = timeString.match(/T(\d{2}):(\d{2})/);
+      if (!timeMatch) return '';
+      
+      let hours = parseInt(timeMatch[1], 10);
+      const minutes = parseInt(timeMatch[2], 10);
+      
+      // Determine am/pm: 12-23 is pm, 0-11 is am
+      const isPM = hours >= 12;
+      
+      // Convert to 12-hour format
+      hours = hours % 12;
+      hours = hours === 0 ? 12 : hours; // 0 should be 12
+      
+      // Format minutes with leading zero if needed
+      const minutesStr = minutes.toString().padStart(2, '0');
+      
+      // Format as "h.mm am/pm" (e.g., "1.03 am", "7.04 am")
+      return `${hours}.${minutesStr} ${isPM ? 'pm' : 'am'}`;
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return '';
+    }
   }
 
   // Get status class for styling

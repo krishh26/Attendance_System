@@ -410,6 +410,48 @@
     &.logs { color: #6f42c1; &:hover { color: #5b36a1; } &:focus-visible { box-shadow: 0 0 0 3px rgba(111,66,193,0.25); } }
     &.activate { color: #198754; }
     &.deactivate { color: #dc3545; }
+    &.logout { 
+      color: #ffc107; 
+      &:hover { color: #ffb300; } 
+      &:focus-visible { box-shadow: 0 0 0 3px rgba(255,193,7,0.25); }
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  .login-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 10px;
+    cursor: default;
+
+    i {
+      font-size: 10px;
+    }
+
+    &.logged-in {
+      color: #28a745;
+      background-color: rgba(40, 167, 69, 0.1);
+      
+      i {
+        color: #28a745;
+      }
+    }
+
+    &.logged-out {
+      color: #6c757d;
+      background-color: rgba(108, 117, 125, 0.1);
+      
+      i {
+        color: #6c757d;
+      }
+    }
   }
 }
 

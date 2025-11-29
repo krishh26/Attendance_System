@@ -22,7 +22,8 @@ export function AuthInterceptor(
   if (token) {
     request = request.clone({
       setHeaders: {
-        Authorization: `Bearer ${token}`
+        Authorization: `Bearer ${token}`,
+        'ngrok-skip-browser-warning' : 'testing'
       }
     });
   }

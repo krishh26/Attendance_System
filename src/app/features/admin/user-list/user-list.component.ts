@@ -40,9 +40,11 @@ export class UserListComponent implements OnInit, OnDestroy {
   showLogsModal = false;
   showStatusModal = false;
   showImportModal = false;
+  showLogoutModal = false;
   selectedUser: User | null = null;
   deleteLoading = false;
   statusLoading = false;
+  logoutLoading = false;
   nextActiveState: boolean | null = null;
   userLogs: AuditLog[] = [];
   selectedFile: File | null = null;
@@ -305,6 +307,34 @@ export class UserListComponent implements OnInit, OnDestroy {
         error: (error) => {
           this.statusLoading = false;
           console.error('Error updating status:', error);
+        }
+      });
+  }
+
+  openLogoutModal(user: User): void {
+    this.selectedUser = user;
+    this.showLogoutModal = true;
+  }
+
+  closeLogoutModal(): void {
+    this.showLogoutModal = false;
+    this.selectedUser = null;
+  }
+
+  onLogoutConfirm(): void {
+    if (!this.selectedUser) return;
+    this.logoutLoading = true;
+    this.userService.logoutFromAllDevices(this.selectedUser._id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.logoutLoading = false;
+          this.closeLogoutModal();
+          this.refreshUsers();
+        },
+        error: (error) => {
+          this.logoutLoading = false;
+          console.error('Error logging out user from all devices:', error);
         }
       });
   }

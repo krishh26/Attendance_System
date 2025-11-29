@@ -120,8 +120,28 @@ export class AuthService {
 
   logout(): void {
     console.log('AuthService: Logging out user');
-    this.clearAuthData();
-    this.router.navigate(['/login']);
+    const token = this.getToken();
+    
+    // Call backend logout endpoint if token exists
+    if (token) {
+      this.apiService.post('/auth/logout', {}).subscribe({
+        next: () => {
+          console.log('AuthService: Backend logout successful');
+        },
+        error: (error) => {
+          console.error('AuthService: Backend logout failed, but clearing local data anyway:', error);
+        },
+        complete: () => {
+          // Always clear local data regardless of backend response
+          this.clearAuthData();
+          this.router.navigate(['/login']);
+        }
+      });
+    } else {
+      // No token, just clear local data
+      this.clearAuthData();
+      this.router.navigate(['/login']);
+    }
   }
 
   isAuthenticated(): boolean {

@@ -177,6 +177,12 @@
             <button class="btn-icon logs" title="View Logs" (click)="openLogsModal(user._id)">
               <i class="fas fa-clipboard-list"></i>
             </button>
+            <span *ngIf="!user.isLoggedIn" class="login-status" [class.logged-in]="user.isLoggedIn" [class.logged-out]="!user.isLoggedIn" [title]="user.isLoggedIn ? 'Currently logged in' : 'Not logged in'">
+              <i class="fas fa-circle"></i>
+            </span>
+            <button *ngIf="user.isLoggedIn" class="btn-icon logout" title="Logout from All Devices" (click)="openLogoutModal(user)" [disabled]="!user.isLoggedIn">
+              <i class="fas fa-sign-out-alt"></i>
+            </button>
             <button class="btn-icon" [class.activate]="!user.isActive" [class.deactivate]="user.isActive" [title]="user.isActive ? 'Deactivate' : 'Activate'" (click)="openStatusModal(user)">
               <i class="fas" [ngClass]="user.isActive ? 'fa-user-slash' : 'fa-user-check'"></i>
             </button>
@@ -272,6 +278,19 @@
     [loading]="deleteLoading"
     (confirm)="onDeleteConfirm()"
     (cancel)="closeDeleteModal()">
+  </app-confirm-modal>
+
+  <!-- Logout from All Devices Confirmation Modal -->
+  <app-confirm-modal
+    [isOpen]="showLogoutModal"
+    title="Logout from All Devices"
+    [message]="'Are you sure you want to logout ' + (selectedUser ? getFullName(selectedUser) : '') + ' from all devices? This will invalidate all active sessions.'"
+    confirmText="Logout from All Devices"
+    cancelText="Cancel"
+    confirmButtonClass="btn-warning"
+    [loading]="logoutLoading"
+    (confirm)="onLogoutConfirm()"
+    (cancel)="closeLogoutModal()">
   </app-confirm-modal>
 
   <!-- Logs Modal -->

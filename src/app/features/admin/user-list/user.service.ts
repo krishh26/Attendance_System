@@ -24,6 +24,7 @@ export interface User {
   center: string;
   pincode: string;
   isActive: boolean;
+  isLoggedIn?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -119,5 +120,9 @@ export class UserService {
   downloadImportTemplate(): Observable<Blob> {
     // Using native HttpClient for blob; add a pass-through here for convenience if needed later
     return (this.apiService as any).http.get(`${(this.apiService as any).baseUrl}/users/import/template`, { responseType: 'blob' });
+  }
+
+  logoutFromAllDevices(userId: string): Observable<any> {
+    return this.apiService.post<any>(`/users/${userId}/logout-all-devices`, {});
   }
 }
