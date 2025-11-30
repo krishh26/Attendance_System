@@ -11,6 +11,12 @@ export class AuthGuard implements CanActivate {
   canActivate(): boolean | UrlTree {
     console.log('AuthGuard: Checking authentication...');
     
+    // Don't block if logout is in progress
+    if (this.authService.getIsLoggingOut()) {
+      console.log('AuthGuard: Logout in progress, allowing navigation');
+      return true;
+    }
+    
     if (this.authService.isAuthenticated()) {
       console.log('AuthGuard: User is authenticated, allowing access');
       return true;
