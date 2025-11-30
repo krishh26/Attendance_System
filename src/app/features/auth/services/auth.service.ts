@@ -57,6 +57,12 @@ export class AuthService {
   private inMemoryToken: string | null = null;
   private inMemoryUser: User | null = null;
   redirectUrl: string | null = null;
+  private isLoggingOut: boolean = false;
+
+  // Public method to check if logout is in progress
+  getIsLoggingOut(): boolean {
+    return this.isLoggingOut;
+  }
 
   // BehaviorSubject to track auth state changes - initialize with current user
   private authStateSubject = new BehaviorSubject<User | null>(null);
@@ -119,29 +125,48 @@ export class AuthService {
   }
 
   logout(): void {
+    // Prevent multiple simultaneous logout calls
+    if (this.isLoggingOut) {
+      console.log('AuthService: Logout already in progress, skipping...');
+      return;
+    }
+
     console.log('AuthService: Logging out user');
+    this.isLoggingOut = true;
     const token = this.getToken();
     
-    // Call backend logout endpoint if token exists
-    if (token) {
-      this.apiService.post('/auth/logout', {}).subscribe({
-        next: () => {
-          console.log('AuthService: Backend logout successful');
-        },
-        error: (error) => {
-          console.error('AuthService: Backend logout failed, but clearing local data anyway:', error);
-        },
-        complete: () => {
-          // Always clear local data regardless of backend response
-          this.clearAuthData();
-          this.router.navigate(['/login']);
-        }
-      });
-    } else {
-      // No token, just clear local data
-      this.clearAuthData();
-      this.router.navigate(['/login']);
-    }
+    // Clear local data immediately to prevent loops
+    this.clearAuthData();
+    
+    // Navigate to login immediately using replaceUrl to prevent back navigation and reload issues
+    this.router.navigate(['/login'], { replaceUrl: true }).then(() => {
+      console.log('AuthService: Navigated to login page');
+    }).catch((error) => {
+      console.error('AuthService: Navigation error:', error);
+    });
+    
+    // Call backend logout endpoint if token exists (fire and forget - don't wait for response)
+    // Use setTimeout to ensure navigation happens first
+    setTimeout(() => {
+      if (token) {
+        this.apiService.post('/auth/logout', {}).subscribe({
+          next: () => {
+            console.log('AuthService: Backend logout successful');
+            this.isLoggingOut = false;
+            this.router.navigate(['/login']);
+          },
+          error: (error) => {
+            // Ignore errors from logout endpoint (401 is expected if token is invalid/expired)
+            console.log('AuthService: Backend logout response (ignoring errors):', error.status);
+            this.isLoggingOut = false;
+            this.router.navigate(['/login']);
+          }
+        });
+      } else {
+        this.isLoggingOut = false;
+        this.router.navigate(['/login']);
+      }
+    }, 100);
   }
 
   isAuthenticated(): boolean {

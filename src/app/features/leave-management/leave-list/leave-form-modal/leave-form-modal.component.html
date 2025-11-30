@@ -21,22 +21,54 @@
           <div *ngIf="viewMode" class="view-field">
             {{ getEmployeeName() }}
           </div>
-          <div *ngIf="!viewMode" class="select-wrapper" [class.loading]="usersLoading">
-            <select
+          <div *ngIf="!viewMode" class="custom-select-wrapper">
+            <div class="custom-select" [class.open]="isUsersDropdownOpen" [class.loading]="usersLoading">
+              <div class="select-trigger" (click)="toggleUsersDropdown()">
+                <input
+                  type="text"
+                  class="select-input"
+                  [value]="getSelectedUserName()"
+                  (focus)="isUsersDropdownOpen = true"
+                  placeholder="Select or search employee..."
+                  readonly>
+                <i class="fas" [ngClass]="isUsersDropdownOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+              </div>
+              <div class="select-dropdown" *ngIf="isUsersDropdownOpen">
+                <div class="select-search">
+                  <input
+                    type="text"
+                    [(ngModel)]="usersSearchTerm"
+                    (input)="onUsersSearch($event)"
+                    placeholder="Type to search..."
+                    class="search-input">
+                  <i class="fas fa-search"></i>
+                </div>
+                <div class="select-options" (scroll)="onUsersScroll($event)">
+                  <div
+                    *ngFor="let user of filteredUsers"
+                    class="select-option"
+                    [class.selected]="formData.userId === user._id"
+                    (click)="selectUser(user)">
+                    {{ getUserDisplayText(user) }}
+                  </div>
+                  <div *ngIf="usersLoading" class="select-loading">
+                    <i class="fas fa-spinner fa-spin"></i> Loading more...
+                  </div>
+                  <div *ngIf="!usersLoading && filteredUsers.length === 0" class="select-empty">
+                    No employees found
+                  </div>
+                  <div *ngIf="!usersHasMore && filteredUsers.length > 0" class="select-end">
+                    End of list
+                  </div>
+                </div>
+              </div>
+            </div>
+            <input
+              type="hidden"
               id="userId"
               [(ngModel)]="formData.userId"
               name="userId"
-              required
-              [disabled]="usersLoading">
-              <option value="">Select an employee...</option>
-              <option *ngFor="let user of users" [value]="user._id">
-                {{ getUserDisplayText(user) }}
-              </option>
-            </select>
-            <i class="fas fa-chevron-down"></i>
-            <div *ngIf="usersLoading" class="loading-spinner">
-              <i class="fas fa-spinner fa-spin"></i>
-            </div>
+              required>
           </div>
         </div>
 

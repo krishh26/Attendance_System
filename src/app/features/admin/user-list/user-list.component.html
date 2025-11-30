@@ -21,37 +21,135 @@
     {{ error }}
   </div>
 
-  <div class="filters">
-    <div class="search-box">
-      <i class="fas fa-search"></i>
-      <input
-        type="text"
-        placeholder="Search users..."
-        [value]="searchTerm"
-        (input)="onSearchChange($event)">
+  <div class="filters-container">
+    <!-- Primary Filters Row -->
+    <div class="filters-primary">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input
+          type="text"
+          placeholder="Search users..."
+          [value]="searchTerm"
+          (input)="onSearchChange($event)">
+      </div>
+
+      <div class="filter-buttons">
+        <button
+          class="btn-filter"
+          [class.active]="statusFilter === 'all'"
+          (click)="onStatusFilterChange('all')">
+          All
+        </button>
+        <button
+          class="btn-filter"
+          [class.active]="statusFilter === 'active'"
+          (click)="onStatusFilterChange('active')">
+          Active
+        </button>
+        <button
+          class="btn-filter"
+          [class.active]="statusFilter === 'inactive'"
+          (click)="onStatusFilterChange('inactive')">
+          Inactive
+        </button>
+      </div>
     </div>
 
-    <div class="filter-buttons">
-      <button
-        class="btn-filter"
-        [class.active]="statusFilter === 'all'"
-        (click)="onStatusFilterChange('all')">
-        All
-      </button>
-      <button
-        class="btn-filter"
-        [class.active]="statusFilter === 'active'"
-        (click)="onStatusFilterChange('active')">
-        Active
-      </button>
-      <button
-        class="btn-filter"
-        [class.active]="statusFilter === 'inactive'"
-        (click)="onStatusFilterChange('inactive')">
-        Inactive
-      </button>
-    </div>
+    <!-- Location Filters Row -->
+    <div class="location-filters" *ngIf="true">
+      <div class="location-filters-header">
+        <span class="filters-section-title">
+          <i class="fas fa-map-marker-alt"></i>
+          Location Filters
+        </span>
+        <button
+          *ngIf="stateFilter || cityFilter || centerFilter"
+          class="btn-clear-filters"
+          (click)="clearFilters()"
+          title="Clear all location filters">
+          <i class="fas fa-times"></i>
+          Clear Filters
+        </button>
+      </div>
 
+      <div class="location-filters-grid">
+        <!-- State Filter -->
+        <div class="filter-group">
+          <label class="filter-label">
+            <i class="fas fa-map"></i>
+            State
+          </label>
+          <div class="custom-select" [class.open]="isStateDropdownOpen">
+            <div class="select-trigger" (click)="toggleStateDropdown()">
+              <span class="select-value">{{ getSelectedStateName() }}</span>
+              <i class="fas" [ngClass]="isStateDropdownOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+            </div>
+            <div class="select-dropdown" *ngIf="isStateDropdownOpen">
+              <div class="select-options" (scroll)="onStateScroll($event)">
+                <div
+                  *ngFor="let state of states"
+                  class="select-option"
+                  [class.selected]="stateFilter === state.name"
+                  (click)="selectState(state)">
+                  {{ state.name }}
+                </div>
+                <div *ngIf="statesLoading" class="select-loading">
+                  <i class="fas fa-spinner fa-spin"></i> Loading more...
+                </div>
+                <div *ngIf="!statesLoading && states.length === 0" class="select-empty">
+                  No states found
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- City Filter -->
+        <div class="filter-group">
+          <label class="filter-label">
+            <i class="fas fa-city"></i>
+            City
+          </label>
+          <div class="custom-select" [class.open]="isCityDropdownOpen" [class.disabled]="!stateFilter">
+            <div class="select-trigger" (click)="toggleCityDropdown()" [class.disabled]="!stateFilter">
+              <span class="select-value">{{ getSelectedCityName() }}</span>
+              <i class="fas" [ngClass]="isCityDropdownOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+            </div>
+            <div class="select-dropdown" *ngIf="isCityDropdownOpen && stateFilter">
+              <div class="select-options" (scroll)="onCityScroll($event)">
+                <div
+                  *ngFor="let city of cities"
+                  class="select-option"
+                  [class.selected]="cityFilter === city.name"
+                  (click)="selectCity(city)">
+                  {{ city.name }}
+                </div>
+                <div *ngIf="citiesLoading" class="select-loading">
+                  <i class="fas fa-spinner fa-spin"></i> Loading more...
+                </div>
+                <div *ngIf="!citiesLoading && cities.length === 0" class="select-empty">
+                  No cities found
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Center/Taluka Filter -->
+        <div class="filter-group">
+          <label class="filter-label">
+            <i class="fas fa-building"></i>
+            Taluka
+          </label>
+          <input
+            type="text"
+            class="filter-input"
+            placeholder="Enter taluka/center..."
+            [(ngModel)]="centerFilter"
+            (input)="onCenterChange()">
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Results meta -->

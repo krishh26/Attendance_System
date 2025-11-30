@@ -74,6 +74,9 @@ export interface UserListParams {
   search?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  state?: string;
+  city?: string;
+  center?: string;
 }
 
 @Injectable({
@@ -90,6 +93,9 @@ export class UserService {
     if (params.search) queryParams.append('search', params.search);
     if (params.sortBy) queryParams.append('sortBy', params.sortBy);
     if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
+    if (params.state) queryParams.append('state', params.state);
+    if (params.city) queryParams.append('city', params.city);
+    if (params.center) queryParams.append('center', params.center);
 
     const endpoint = `/users${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
     return this.apiService.get<UserListResponse>(endpoint);

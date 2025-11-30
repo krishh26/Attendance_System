@@ -16,57 +16,74 @@
     {{ error }}
   </div>
 
-  <div class="filters">
-    <div class="filter-row single-line">
+  <div class="filters-container">
+    <!-- Primary Filters Row -->
+    <div class="filters-primary">
       <!-- Status Filter Buttons -->
-      <div class="filter-group status-group">
-        <div class="filter-buttons">
-          <button
-            class="btn-filter"
-            [class.active]="statusFilter === 'all'"
-            (click)="onStatusFilterChange('all')">
-            <i class="fas fa-list"></i>
-            All
-          </button>
-          <button
-            class="btn-filter"
-            [class.active]="statusFilter === 'pending'"
-            (click)="onStatusFilterChange('pending')">
-            <i class="fas fa-clock"></i>
-            Pending
-          </button>
-          <button
-            class="btn-filter"
-            [class.active]="statusFilter === 'approved'"
-            (click)="onStatusFilterChange('approved')">
-            <i class="fas fa-check-circle"></i>
-            Approved
-          </button>
-          <button
-            class="btn-filter"
-            [class.active]="statusFilter === 'rejected'"
-            (click)="onStatusFilterChange('rejected')">
-            <i class="fas fa-times-circle"></i>
-            Rejected
-          </button>
-          <button
-            class="btn-filter"
-            [class.active]="statusFilter === 'cancelled'"
-            (click)="onStatusFilterChange('cancelled')">
-            <i class="fas fa-ban"></i>
-            Cancelled
-          </button>
-        </div>
+      <div class="filter-buttons">
+        <button
+          class="btn-filter"
+          [class.active]="statusFilter === 'all'"
+          (click)="onStatusFilterChange('all')">
+          <i class="fas fa-list"></i>
+          All
+        </button>
+        <button
+          class="btn-filter"
+          [class.active]="statusFilter === 'pending'"
+          (click)="onStatusFilterChange('pending')">
+          <i class="fas fa-clock"></i>
+          Pending
+        </button>
+        <button
+          class="btn-filter"
+          [class.active]="statusFilter === 'approved'"
+          (click)="onStatusFilterChange('approved')">
+          <i class="fas fa-check-circle"></i>
+          Approved
+        </button>
+        <button
+          class="btn-filter"
+          [class.active]="statusFilter === 'rejected'"
+          (click)="onStatusFilterChange('rejected')">
+          <i class="fas fa-times-circle"></i>
+          Rejected
+        </button>
+        <button
+          class="btn-filter"
+          [class.active]="statusFilter === 'cancelled'"
+          (click)="onStatusFilterChange('cancelled')">
+          <i class="fas fa-ban"></i>
+          Cancelled
+        </button>
+      </div>
+    </div>
+
+    <!-- Additional Filters Row -->
+    <div class="additional-filters">
+      <div class="additional-filters-header">
+        <span class="filters-section-title">
+          <i class="fas fa-filter"></i>
+          Additional Filters
+        </span>
+        <button
+          *ngIf="statusFilter !== 'all' || leaveTypeFilter !== 'all' || halfDayFilter !== 'all' || startDateFilter || endDateFilter"
+          class="btn-clear-filters"
+          (click)="clearFilters()"
+          title="Clear all filters">
+          <i class="fas fa-times"></i>
+          Clear Filters
+        </button>
       </div>
 
-      <!-- Leave Type Filter -->
-      <div class="filter-group type-group">
-        <div class="type-filter">
-          <label for="leaveTypeFilter">
+      <div class="additional-filters-grid">
+        <!-- Leave Type Filter -->
+        <div class="filter-group">
+          <label class="filter-label">
             <i class="fas fa-calendar-check"></i>
-            Type
+            Leave Type
           </label>
-          <select id="leaveTypeFilter" [(ngModel)]="leaveTypeFilter" (change)="onLeaveTypeFilterChange()">
+          <select id="leaveTypeFilter" [(ngModel)]="leaveTypeFilter" (change)="onLeaveTypeFilterChange()" class="filter-select">
             <option value="all">All Types</option>
             <option value="annual">Earn Leave</option>
             <option value="casual">Casual Leave</option>
@@ -76,27 +93,23 @@
             <option value="other">Other</option>
           </select>
         </div>
-      </div>
 
-      <!-- Half Day Filter -->
-      <div class="filter-group halfday-group">
-        <div class="halfday-filter">
-          <label for="halfDayFilter">
+        <!-- Half Day Filter -->
+        <div class="filter-group">
+          <label class="filter-label">
             <i class="fas fa-clock"></i>
             Duration
           </label>
-          <select id="halfDayFilter" [(ngModel)]="halfDayFilter" (change)="onHalfDayFilterChange()">
+          <select id="halfDayFilter" [(ngModel)]="halfDayFilter" (change)="onHalfDayFilterChange()" class="filter-select">
             <option value="all">All</option>
             <option value="true">Half Day</option>
             <option value="false">Full Day</option>
           </select>
         </div>
-      </div>
 
-      <!-- Start Date Filter -->
-      <div class="filter-group startdate-group">
-        <div class="startdate-filter">
-          <label for="startDateFilter">
+        <!-- Start Date Filter -->
+        <div class="filter-group">
+          <label class="filter-label">
             <i class="fas fa-calendar-alt"></i>
             Start Date
           </label>
@@ -104,14 +117,13 @@
             type="date"
             id="startDateFilter"
             [(ngModel)]="startDateFilter"
-            (change)="onDateFilterChange()">
+            (change)="onDateFilterChange()"
+            class="filter-input">
         </div>
-      </div>
 
-      <!-- End Date Filter -->
-      <div class="filter-group enddate-group">
-        <div class="enddate-filter">
-          <label for="endDateFilter">
+        <!-- End Date Filter -->
+        <div class="filter-group">
+          <label class="filter-label">
             <i class="fas fa-calendar-alt"></i>
             End Date
           </label>
@@ -119,17 +131,8 @@
             type="date"
             id="endDateFilter"
             [(ngModel)]="endDateFilter"
-            (change)="onDateFilterChange()">
-        </div>
-      </div>
-
-      <!-- Clear Filters Button -->
-      <div class="filter-group clear-group">
-        <div class="clear-filters">
-          <button class="btn-clear-filters" (click)="clearFilters()" title="Clear All Filters">
-            <i class="fas fa-times"></i>
-            Clear
-          </button>
+            (change)="onDateFilterChange()"
+            class="filter-input">
         </div>
       </div>
     </div>

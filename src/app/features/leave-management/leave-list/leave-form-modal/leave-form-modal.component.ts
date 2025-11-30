@@ -1,7 +1,7 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, OnChanges, SimpleChanges, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import { LeaveService, LeaveRequest } from '../../services/leave.service';
 import { UserService, User } from '../../../admin/user-list/user.service';
 
@@ -50,6 +50,13 @@ export class LeaveFormModalComponent implements OnInit, OnDestroy, OnChanges {
   // Data
   users: User[] = [];
   usersLoading = false;
+  usersSearchTerm = '';
+  usersPage = 1;
+  usersLimit = 30;
+  usersHasMore = true;
+  usersTotal = 0;
+  isUsersDropdownOpen = false;
+  filteredUsers: User[] = [];
 
   // Leave type options
   leaveTypes = [
@@ -68,14 +75,36 @@ export class LeaveFormModalComponent implements OnInit, OnDestroy, OnChanges {
   ];
 
   private destroy$ = new Subject<void>();
+  private searchSubject$ = new Subject<string>();
 
   constructor(
     private leaveService: LeaveService,
-    private userService: UserService
+    private userService: UserService,
+    private elementRef: ElementRef
   ) {}
 
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.elementRef.nativeElement.contains(event.target) && this.isUsersDropdownOpen) {
+      this.isUsersDropdownOpen = false;
+    }
+  }
+
   ngOnInit(): void {
-    this.loadUsers();
+    // Don't load users on init - load when dropdown opens
+    
+    // Setup debounced search
+    this.searchSubject$
+      .pipe(
+        debounceTime(300),
+        distinctUntilChanged(),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(searchTerm => {
+        this.usersSearchTerm = searchTerm;
+        this.usersPage = 1;
+        this.loadUsers(true);
+      });
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -95,21 +124,116 @@ export class LeaveFormModalComponent implements OnInit, OnDestroy, OnChanges {
     this.destroy$.complete();
   }
 
-  private loadUsers(): void {
+  private loadUsers(reset: boolean = false): void {
+    if (reset) {
+      this.users = [];
+      this.usersPage = 1;
+      this.usersHasMore = true;
+    }
+
+    if (!this.usersHasMore && !reset) {
+      return;
+    }
+
     this.usersLoading = true;
-    this.userService.getUsers({ limit: 1000 }) // Get all users
+    this.userService.getUsers({ 
+      page: this.usersPage, 
+      limit: this.usersLimit,
+      search: this.usersSearchTerm,
+      sortBy: 'firstname',
+      sortOrder: 'asc'
+    })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
-          this.users = response.data || [];
+          // Handle nested response structure: response.data.data contains users array
+          const responseData = (response as any).data;
+          
+          // Extract users array - can be in response.data.data or response.data
+          let newUsers: User[] = [];
+          if (Array.isArray(responseData?.data)) {
+            newUsers = responseData.data;
+          } else if (Array.isArray(responseData)) {
+            newUsers = responseData;
+          } else if (Array.isArray((response as any).data)) {
+            newUsers = (response as any).data;
+          }
+          
+          if (reset) {
+            this.users = newUsers;
+          } else {
+            this.users = [...this.users, ...newUsers];
+          }
+          
+          // Check if there are more users to load
+          // Pagination can be in response.data.pagination or response.pagination
+          const pagination = responseData?.pagination || (response as any).pagination;
+          if (pagination) {
+            this.usersTotal = pagination.total || 0;
+            this.usersHasMore = this.users.length < pagination.total;
+          } else {
+            // Fallback: if we got less than limit, assume no more
+            this.usersHasMore = newUsers.length === this.usersLimit;
+          }
+          
+          this.filterUsers();
           this.usersLoading = false;
         },
         error: (error) => {
           console.error('Error loading users:', error);
+          console.error('Error details:', error);
           this.usersLoading = false;
           this.error = 'Failed to load users. Please try again.';
+          // Reset users on error to show empty state
+          if (reset) {
+            this.users = [];
+            this.filteredUsers = [];
+          }
         }
       });
+  }
+
+  onUsersSearch(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    const searchTerm = target?.value || '';
+    this.searchSubject$.next(searchTerm);
+  }
+
+  onUsersScroll(event: Event): void {
+    const element = event.target as HTMLElement;
+    const scrollTop = element.scrollTop;
+    const scrollHeight = element.scrollHeight;
+    const clientHeight = element.clientHeight;
+
+    // Load more when scrolled to 80% of the list
+    if (scrollTop + clientHeight >= scrollHeight * 0.8 && !this.usersLoading && this.usersHasMore) {
+      this.usersPage++;
+      this.loadUsers(false);
+    }
+  }
+
+  filterUsers(): void {
+    // Since we're using server-side search, just use all loaded users
+    // The search is handled by the API
+    this.filteredUsers = [...this.users];
+  }
+
+  toggleUsersDropdown(): void {
+    this.isUsersDropdownOpen = !this.isUsersDropdownOpen;
+    if (this.isUsersDropdownOpen && this.users.length === 0) {
+      this.usersSearchTerm = '';
+      this.loadUsers(true);
+    }
+  }
+
+  selectUser(user: User): void {
+    this.formData.userId = user._id;
+    this.isUsersDropdownOpen = false;
+    // Update search term to show selected user
+    const selectedUser = this.users.find(u => u._id === user._id);
+    if (selectedUser) {
+      this.usersSearchTerm = this.getUserDisplayText(selectedUser);
+    }
   }
 
   private resetForm(): void {
@@ -138,6 +262,25 @@ export class LeaveFormModalComponent implements OnInit, OnDestroy, OnChanges {
         halfDayType: this.leaveRequest.halfDayType || 'morning',
         notes: this.leaveRequest.notes || ''
       };
+      
+      // If editing, load the selected user to show in dropdown
+      if (this.leaveRequest.userId?._id && !this.viewMode) {
+        this.userService.getUserById(this.leaveRequest.userId._id)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next: (response) => {
+              if (response?.data) {
+                const user = response.data;
+                this.users = [user];
+                this.filteredUsers = [user];
+                this.usersSearchTerm = this.getUserDisplayText(user);
+              }
+            },
+            error: (error) => {
+              console.error('Error loading user:', error);
+            }
+          });
+      }
     }
   }
 
@@ -300,6 +443,14 @@ export class LeaveFormModalComponent implements OnInit, OnDestroy, OnChanges {
 
     // Fallback to the userId if user not found
     return this.leaveRequest.userId?._id;
+  }
+
+  getSelectedUserName(): string {
+    if (!this.formData.userId) {
+      return '';
+    }
+    const user = this.users.find(u => u._id === this.formData.userId);
+    return user ? this.getUserDisplayText(user) : '';
   }
 
   formatDateForDisplay(dateString: string): string {
