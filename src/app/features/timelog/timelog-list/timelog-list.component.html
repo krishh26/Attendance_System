@@ -67,46 +67,80 @@
   </div>
 
   <!-- Filters -->
-  <div class="filters">
-    <div class="filter-row single-line">
-      <!-- Status Filter Buttons -->
-      <div class="filter-group status-group">
-        <div class="filter-buttons">
-          <button
-            class="btn-filter"
-            [class.active]="selectedStatus === 'all'"
-            (click)="selectedStatus = 'all'; onStatusChange()">
-            <i class="fas fa-list"></i>
-            All
-          </button>
-          <button
-            class="btn-filter"
-            [class.active]="selectedStatus === 'present'"
-            (click)="selectedStatus = 'present'; onStatusChange()">
-            <i class="fas fa-check-circle"></i>
-            Present
-          </button>
-          <button
-            class="btn-filter"
-            [class.active]="selectedStatus === 'late'"
-            (click)="selectedStatus = 'late'; onStatusChange()">
-            <i class="fas fa-clock"></i>
-            Late
-          </button>
-          <button
-            class="btn-filter"
-            [class.active]="selectedStatus === 'absent'"
-            (click)="selectedStatus = 'absent'; onStatusChange()">
-            <i class="fas fa-times-circle"></i>
-            Absent
-          </button>
-        </div>
+  <div class="filters-container">
+    <!-- Primary Filters Row -->
+    <div class="filters-primary">
+      <!-- Search Box -->
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input
+          type="text"
+          placeholder="Search by name, email, or mobile..."
+          [value]="searchTerm"
+          (input)="onSearchChange($event)">
+        <button 
+          *ngIf="searchTerm" 
+          class="btn-clear-search" 
+          (click)="clearSearch()" 
+          title="Clear search">
+          <i class="fas fa-times"></i>
+        </button>
       </div>
 
-      <!-- Date Filter -->
-      <div class="filter-group date-group">
-        <div class="date-filter">
-          <label for="dateFilter">
+      <!-- Status Filter Buttons -->
+      <div class="filter-buttons">
+        <button
+          class="btn-filter"
+          [class.active]="selectedStatus === 'all'"
+          (click)="selectedStatus = 'all'; onStatusChange()">
+          <i class="fas fa-list"></i>
+          All
+        </button>
+        <button
+          class="btn-filter"
+          [class.active]="selectedStatus === 'present'"
+          (click)="selectedStatus = 'present'; onStatusChange()">
+          <i class="fas fa-check-circle"></i>
+          Present
+        </button>
+        <button
+          class="btn-filter"
+          [class.active]="selectedStatus === 'late'"
+          (click)="selectedStatus = 'late'; onStatusChange()">
+          <i class="fas fa-clock"></i>
+          Late
+        </button>
+        <button
+          class="btn-filter"
+          [class.active]="selectedStatus === 'absent'"
+          (click)="selectedStatus = 'absent'; onStatusChange()">
+          <i class="fas fa-times-circle"></i>
+          Absent
+        </button>
+      </div>
+    </div>
+
+    <!-- Additional Filters Row -->
+    <div class="additional-filters">
+      <div class="additional-filters-header">
+        <span class="filters-section-title">
+          <i class="fas fa-filter"></i>
+          Additional Filters
+        </span>
+        <button
+          *ngIf="hasActiveFilters()"
+          class="btn-clear-filters"
+          (click)="clearAllFilters()"
+          title="Clear all filters">
+          <i class="fas fa-times"></i>
+          Clear Filters
+        </button>
+      </div>
+
+      <div class="additional-filters-grid">
+        <!-- Date Filter -->
+        <div class="filter-group">
+          <label class="filter-label">
             <i class="fas fa-calendar-alt"></i>
             Date
           </label>
@@ -114,34 +148,23 @@
             type="date"
             id="dateFilter"
             [(ngModel)]="selectedDate"
-            (change)="onDateChange()">
+            (change)="onDateChange()"
+            class="filter-input">
         </div>
-      </div>
 
-      <!-- Rows per page -->
-      <div class="filter-group rows-group">
-        <div class="rows-filter">
-          <label for="rowsFilter">
+        <!-- Rows per page -->
+        <div class="filter-group">
+          <label class="filter-label">
             <i class="fas fa-list-ol"></i>
-            Rows
+            Rows per Page
           </label>
-          <select id="rowsFilter" [ngModel]="itemsPerPage" (ngModelChange)="onPageSizeChange($event)">
+          <select id="rowsFilter" [ngModel]="itemsPerPage" (ngModelChange)="onPageSizeChange($event)" class="filter-select">
             <option [ngValue]="5">5</option>
             <option [ngValue]="10">10</option>
             <option [ngValue]="25">25</option>
             <option [ngValue]="50">50</option>
             <option [ngValue]="100">100</option>
           </select>
-        </div>
-      </div>
-
-      <!-- Clear Filters Button -->
-      <div class="filter-group clear-group">
-        <div class="clear-filters">
-          <button class="btn-clear-filters" (click)="clearAllFilters()" title="Clear All Filters">
-            <i class="fas fa-times"></i>
-            Clear
-          </button>
         </div>
       </div>
     </div>
@@ -163,7 +186,7 @@
       <table>
         <thead>
           <tr>
-            <th>Employee ID</th>
+            <th>Employee Name</th>
             <th>Date</th>
             <th>Check In Time</th>
             <th>Check Out Time</th>

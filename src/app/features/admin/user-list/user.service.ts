@@ -23,6 +23,7 @@ export interface User {
   state: string;
   center: string;
   pincode: string;
+  designation?: string;
   isActive: boolean;
   isLoggedIn?: boolean;
   createdAt: string;
@@ -42,6 +43,7 @@ export interface CreateUserRequest {
   state: string;
   center: string;
   pincode: string;
+  designation?: string;
 }
 
 export interface UpdateUserRequest {
@@ -57,6 +59,7 @@ export interface UpdateUserRequest {
   state?: string;
   center?: string;
   pincode?: string;
+  designation?: string;
   isActive?: boolean;
 }
 

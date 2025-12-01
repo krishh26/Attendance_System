@@ -57,6 +57,13 @@
               <p>{{ user.mobilenumber }}</p>
             </div>
           </div>
+          <div class="detail-item" *ngIf="user.designation">
+            <i class="fas fa-briefcase"></i>
+            <div>
+              <label>Designation</label>
+              <p>{{ user.designation }}</p>
+            </div>
+          </div>
           <div class="detail-item">
             <i class="fas fa-map-marker-alt"></i>
             <div>

@@ -51,7 +51,8 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
       city: ['', Validators.required],
       state: ['', Validators.required],
       center: ['', Validators.required],
-      pincode: ['', [Validators.required, Validators.pattern(/^\d{5,6}$/)]]
+      pincode: ['', [Validators.required, Validators.pattern(/^\d{5,6}$/)]],
+      designation: ['']
     });
   }
 
@@ -169,7 +170,8 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
         city: this.user.city,
         state: this.user.state,
         center: this.user.center,
-        pincode: this.user.pincode
+        pincode: this.user.pincode,
+        designation: this.user.designation || ''
       });
 
       // Make password optional for edit mode
@@ -290,7 +292,8 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
       city: 'City',
       state: 'State',
       center: 'Center',
-      pincode: 'Pincode'
+      pincode: 'Pincode',
+      designation: 'Designation'
     };
     return labels[fieldName] || fieldName;
   }

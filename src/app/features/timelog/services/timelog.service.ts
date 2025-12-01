@@ -46,6 +46,7 @@ export interface TimeLogParams {
   date: string;
   page: number;
   limit: number;
+  search?: string;
 }
 
 @Injectable({
@@ -56,8 +57,13 @@ export class TimelogService {
 
   // Get all users time logs with pagination and date filter
   getAllUsersTimeLogs(params: TimeLogParams): Observable<TimeLogResponse> {
-    const { date, page, limit } = params;
-    const endpoint = `/attendance/admin/all-users?date=${date}&page=${page}&limit=${limit}`;
+    const { date, page, limit, search } = params;
+    let endpoint = `/attendance/admin/all-users?date=${date}&page=${page}&limit=${limit}`;
+    
+    // Add search parameter if provided
+    if (search && search.trim()) {
+      endpoint += `&search=${encodeURIComponent(search.trim())}`;
+    }
     
     return this.apiService.get<TimeLogResponse>(endpoint).pipe(
       catchError((error: any) => {

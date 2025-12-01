@@ -231,6 +231,7 @@
           </th>
           <th>Role</th>
           <th>Mobile</th>
+          <th>Designation</th>
           <th>Taluka</th>
           <th (click)="onSort('createdAt')" class="sortable">
             Created Date
@@ -255,6 +256,7 @@
             </span>
           </td>
           <td>{{ user.mobilenumber }}</td>
+          <td>{{ user.designation || '-' }}</td>
           <td>{{ user.center }}</td>
           <td>{{ user.createdAt | date:'shortDate' }}</td>
           <td>
@@ -263,27 +265,71 @@
             </span>
           </td>
           <td class="actions">
-            <button class="btn-icon view" title="View Details" (click)="viewUserDetails(user._id)">
-              <i class="fas fa-eye"></i>
-            </button>
-            <button class="btn-icon edit" title="Edit" (click)="openEditUserModal(user)">
-              <i class="fas fa-edit"></i>
-            </button>
-            <button class="btn-icon delete" title="Delete" (click)="openDeleteUserModal(user)">
-              <i class="fas fa-trash"></i>
-            </button>
-            <button class="btn-icon logs" title="View Logs" (click)="openLogsModal(user._id)">
-              <i class="fas fa-clipboard-list"></i>
-            </button>
-            <span *ngIf="!user.isLoggedIn" class="login-status" [class.logged-in]="user.isLoggedIn" [class.logged-out]="!user.isLoggedIn" [title]="user.isLoggedIn ? 'Currently logged in' : 'Not logged in'">
-              <i class="fas fa-circle"></i>
-            </span>
-            <button *ngIf="user.isLoggedIn" class="btn-icon logout" title="Logout from All Devices" (click)="openLogoutModal(user)" [disabled]="!user.isLoggedIn">
-              <i class="fas fa-sign-out-alt"></i>
-            </button>
-            <button class="btn-icon" [class.activate]="!user.isActive" [class.deactivate]="user.isActive" [title]="user.isActive ? 'Deactivate' : 'Activate'" (click)="openStatusModal(user)">
-              <i class="fas" [ngClass]="user.isActive ? 'fa-user-slash' : 'fa-user-check'"></i>
-            </button>
+            <div class="action-menu-container">
+              <button 
+                class="btn-icon btn-menu-toggle" 
+                [class.active]="isActionMenuOpen(user._id)"
+                (click)="toggleActionMenu(user._id, $event)"
+                title="Actions">
+                <i class="fas fa-ellipsis-v"></i>
+              </button>
+              
+              <div 
+                class="action-menu-dropdown" 
+                *ngIf="isActionMenuOpen(user._id)"
+                (click)="$event.stopPropagation()">
+                <button 
+                  class="menu-item" 
+                  (click)="handleAction('view', user, $event)"
+                  title="View Details">
+                  <i class="fas fa-eye"></i>
+                  <span>View Details</span>
+                </button>
+                <button 
+                  class="menu-item" 
+                  (click)="handleAction('edit', user, $event)"
+                  title="Edit">
+                  <i class="fas fa-edit"></i>
+                  <span>Edit</span>
+                </button>
+                <button 
+                  class="menu-item menu-item-danger" 
+                  (click)="handleAction('delete', user, $event)"
+                  title="Delete">
+                  <i class="fas fa-trash"></i>
+                  <span>Delete</span>
+                </button>
+                <button 
+                  class="menu-item" 
+                  (click)="handleAction('logs', user, $event)"
+                  title="View Logs">
+                  <i class="fas fa-clipboard-list"></i>
+                  <span>View Logs</span>
+                </button>
+                <button 
+                  *ngIf="user.isLoggedIn"
+                  class="menu-item menu-item-warning" 
+                  (click)="handleAction('logout', user, $event)"
+                  [disabled]="!user.isLoggedIn"
+                  title="Logout from All Devices">
+                  <i class="fas fa-sign-out-alt"></i>
+                  <span>Logout from All Devices</span>
+                </button>
+                <button 
+                  class="menu-item" 
+                  [class.menu-item-success]="!user.isActive"
+                  [class.menu-item-danger]="user.isActive"
+                  (click)="handleAction(user.isActive ? 'deactivate' : 'activate', user, $event)"
+                  [title]="user.isActive ? 'Deactivate' : 'Activate'">
+                  <i class="fas" [ngClass]="user.isActive ? 'fa-user-slash' : 'fa-user-check'"></i>
+                  <span>{{ user.isActive ? 'Deactivate' : 'Activate' }}</span>
+                </button>
+                <div class="menu-item menu-item-info" *ngIf="!user.isLoggedIn" title="Not logged in">
+                  <i class="fas fa-circle"></i>
+                  <span>Not logged in</span>
+                </div>
+              </div>
+            </div>
           </td>
         </tr>
       </tbody>

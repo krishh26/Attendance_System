@@ -52,6 +52,9 @@ export class UserListComponent implements OnInit, OnDestroy {
   statesHasMore = true;
   citiesHasMore = true;
 
+  // Action menu state
+  openActionMenuId: string | null = null;
+
     // Sorting
   sortBy = 'createdAt';
   sortOrder: 'asc' | 'desc' = 'desc';
@@ -109,6 +112,7 @@ export class UserListComponent implements OnInit, OnDestroy {
     if (!this.elementRef.nativeElement.contains(event.target)) {
       this.isStateDropdownOpen = false;
       this.isCityDropdownOpen = false;
+      this.openActionMenuId = null;
     }
   }
 
@@ -626,5 +630,49 @@ export class UserListComponent implements OnInit, OnDestroy {
     const roleName = typeof user.role === 'string' ? user.role : (user.role as RoleRef)?.name;
     const safe = String(roleName || 'none').toLowerCase();
     return `role-${safe}`;
+  }
+
+  toggleActionMenu(userId: string, event: Event): void {
+    event.stopPropagation();
+    this.openActionMenuId = this.openActionMenuId === userId ? null : userId;
+  }
+
+  closeActionMenu(): void {
+    this.openActionMenuId = null;
+  }
+
+  isActionMenuOpen(userId: string): boolean {
+    return this.openActionMenuId === userId;
+  }
+
+  handleAction(action: string, user: User, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.closeActionMenu();
+
+    switch (action) {
+      case 'view':
+        this.viewUserDetails(user._id);
+        break;
+      case 'edit':
+        this.openEditUserModal(user);
+        break;
+      case 'delete':
+        this.openDeleteUserModal(user);
+        break;
+      case 'logs':
+        this.openLogsModal(user._id);
+        break;
+      case 'logout':
+        if (user.isLoggedIn) {
+          this.openLogoutModal(user);
+        }
+        break;
+      case 'activate':
+      case 'deactivate':
+        this.openStatusModal(user);
+        break;
+    }
   }
 }

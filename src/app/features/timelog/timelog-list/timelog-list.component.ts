@@ -105,7 +105,8 @@ export class TimelogListComponent implements OnInit, OnDestroy {
     const params: TimeLogParams = {
       date: this.selectedDate,
       page: this.currentPage,
-      limit: this.itemsPerPage
+      limit: this.itemsPerPage,
+      search: this.searchTerm.trim() || undefined
     };
 
     this.timelogService.getAllUsersTimeLogs(params)
@@ -150,6 +151,13 @@ export class TimelogListComponent implements OnInit, OnDestroy {
     this.searchSubject$.next(this.searchTerm);
   }
 
+  // Clear search input
+  clearSearch(): void {
+    this.searchTerm = '';
+    this.currentPage = 1;
+    this.loadTimeLogs();
+  }
+
   // Handle date filter change
   onDateChange(): void {
     this.currentPage = 1;
@@ -158,8 +166,10 @@ export class TimelogListComponent implements OnInit, OnDestroy {
 
   // Handle status filter change
   onStatusChange(): void {
-    this.currentPage = 1;
-    this.loadTimeLogs();
+    // Status filter is applied client-side, no need to reload
+    // But we can reload if you want server-side status filtering
+    // this.currentPage = 1;
+    // this.loadTimeLogs();
   }
 
   // Handle page change
@@ -183,20 +193,11 @@ export class TimelogListComponent implements OnInit, OnDestroy {
     return pages;
   }
 
-  // Filter time entries based on search and status
+  // Filter time entries based on status (search is now handled server-side)
   get filteredTimeEntries(): TimeLogEntry[] | any[] {
     let filtered = this.timeEntries;
 
-    // Apply search filter
-    if (this.searchTerm.trim()) {
-      const search = this.searchTerm.toLowerCase();
-      filtered = filtered.filter(entry =>
-        entry.userId?.toLowerCase().includes(search) ||
-        entry.status.toLowerCase().includes(search)
-      );
-    }
-
-    // Apply status filter
+    // Apply status filter (client-side since it's already loaded)
     if (this.selectedStatus !== 'all') {
       filtered = filtered.filter(entry =>
         entry.status.toLowerCase() === this.selectedStatus.toLowerCase()
@@ -260,12 +261,6 @@ export class TimelogListComponent implements OnInit, OnDestroy {
     return latitude != null && longitude != null &&
            !isNaN(latitude) && !isNaN(longitude) &&
            latitude !== 0 && longitude !== 0;
-  }
-
-  // Clear search input
-  clearSearch(): void {
-    this.searchTerm = '';
-    this.onSearchChange();
   }
 
   // Set date to today
