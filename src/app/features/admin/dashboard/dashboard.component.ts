@@ -1,117 +1,126 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit } from '@angular/core';
+import { CommonModule, DecimalPipe } from '@angular/common';
 import { RouterModule } from '@angular/router';
-
-interface DashboardStats {
-  totalEmployees: number;
-  presentToday: number;
-  onLeave: number;
-  newRequests: number;
-}
-
-interface RecentActivity {
-  id: number;
-  user: string;
-  action: string;
-  time: string;
-  type: 'attendance' | 'leave' | 'login' | 'update';
-  userAvatar: string;
-}
-
-interface LeaveRequest {
-  id: number;
-  employee: string;
-  type: string;
-  startDate: string;
-  endDate: string;
-  status: 'Pending' | 'Approved' | 'Rejected';
-}
+import { DashboardService, DashboardStats, RecentActivity, DepartmentStat, LeaveRequest } from './dashboard.service';
 
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss'],
   standalone: true,
-  imports: [CommonModule, RouterModule]
+  imports: [CommonModule, RouterModule, DecimalPipe]
 })
-export class DashboardComponent {
-  // Initialize stats directly
+export class DashboardComponent implements OnInit {
   stats: DashboardStats = {
-    totalEmployees: 150,
-    presentToday: 135,
-    onLeave: 8,
-    newRequests: 5
+    totalEmployees: 0,
+    presentToday: 0,
+    onLeave: 0,
+    newRequests: 0
   };
 
-  recentActivities: RecentActivity[] = [
-    {
-      id: 1,
-      user: 'John Doe',
-      action: 'marked attendance',
-      time: '5 minutes ago',
-      type: 'attendance',
-      userAvatar: 'https://ui-avatars.com/api/?name=John+Doe'
-    },
-    {
-      id: 2,
-      user: 'Jane Smith',
-      action: 'requested leave',
-      time: '10 minutes ago',
-      type: 'leave',
-      userAvatar: 'https://ui-avatars.com/api/?name=Jane+Smith'
-    },
-    {
-      id: 3,
-      user: 'Mike Johnson',
-      action: 'logged in',
-      time: '15 minutes ago',
-      type: 'login',
-      userAvatar: 'https://ui-avatars.com/api/?name=Mike+Johnson'
-    },
-    {
-      id: 4,
-      user: 'Sarah Williams',
-      action: 'updated profile',
-      time: '20 minutes ago',
-      type: 'update',
-      userAvatar: 'https://ui-avatars.com/api/?name=Sarah+Williams'
-    }
-  ];
+  recentActivities: RecentActivity[] = [];
+  pendingLeaveRequests: LeaveRequest[] = [];
+  attendanceByDepartment: DepartmentStat[] = [];
+  isLoading = true;
+  error: string | null = null;
 
-  pendingLeaveRequests: LeaveRequest[] = [
-    {
-      id: 1,
-      employee: 'John Doe',
-      type: 'Sick Leave',
-      startDate: '2024-03-20',
-      endDate: '2024-03-21',
-      status: 'Pending'
-    },
-    {
-      id: 2,
-      employee: 'Jane Smith',
-      type: 'Vacation',
-      startDate: '2024-03-25',
-      endDate: '2024-03-28',
-      status: 'Pending'
-    },
-    {
-      id: 3,
-      employee: 'Mike Johnson',
-      type: 'Personal Leave',
-      startDate: '2024-03-22',
-      endDate: '2024-03-22',
-      status: 'Pending'
-    }
-  ];
+  constructor(private dashboardService: DashboardService) { }
 
-  attendanceByDepartment = [
-    { department: 'IT', present: 45, total: 50 },
-    { department: 'HR', present: 15, total: 18 },
-    { department: 'Finance', present: 25, total: 30 },
-    { department: 'Marketing', present: 30, total: 35 },
-    { department: 'Operations', present: 20, total: 25 }
-  ];
+  ngOnInit() {
+    this.loadDashboardData();
+  }
+
+  loadDashboardData() {
+    this.isLoading = true;
+    this.error = null;
+
+    // Load all data in parallel
+    this.dashboardService.getStats().subscribe({
+      next: (data) => {
+        this.stats = data;
+        this.checkLoadingComplete();
+      },
+      error: (error) => {
+        console.error('Error loading stats:', error);
+        this.handleError('Failed to load dashboard statistics');
+      }
+    });
+
+    this.dashboardService.getRecentActivity(5).subscribe({
+      next: (data) => {
+        this.recentActivities = data.map(activity => ({
+          ...activity,
+          time: this.formatTime(activity.time)
+        }));
+        this.checkLoadingComplete();
+      },
+      error: (error) => {
+        console.error('Error loading recent activity:', error);
+        this.handleError('Failed to load recent activity');
+      }
+    });
+
+    this.dashboardService.getDepartmentStats().subscribe({
+      next: (data) => {
+        this.attendanceByDepartment = data;
+        this.checkLoadingComplete();
+      },
+      error: (error) => {
+        console.error('Error loading department stats:', error);
+        this.handleError('Failed to load department statistics');
+      }
+    });
+
+    this.dashboardService.getPendingLeaveRequests(5).subscribe({
+      next: (data) => {
+        this.pendingLeaveRequests = data.map(req => ({
+          ...req,
+          employee: req.userId ? `${req.userId.firstname} ${req.userId.lastname}` : 'Unknown',
+          type: req.leaveType,
+          startDate: this.formatDate(req.startDate),
+          endDate: this.formatDate(req.endDate)
+        }));
+        this.checkLoadingComplete();
+      },
+      error: (error) => {
+        console.error('Error loading leave requests:', error);
+        this.handleError('Failed to load leave requests');
+      }
+    });
+  }
+
+  private checkLoadingComplete() {
+    // Simple check - in a real app, you might want to track each request separately
+    if (this.stats.totalEmployees > 0 || this.recentActivities.length > 0 || 
+        this.attendanceByDepartment.length > 0 || this.pendingLeaveRequests.length > 0) {
+      this.isLoading = false;
+    }
+  }
+
+  private handleError(message: string) {
+    this.error = message;
+    this.isLoading = false;
+  }
+
+  formatTime(time: string | Date): string {
+    const date = new Date(time);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString();
+  }
+
+  formatDate(date: string | Date): string {
+    const d = new Date(date);
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
 
   getActivityIcon(type: string): string {
     switch (type) {
@@ -144,6 +153,35 @@ export class DashboardComponent {
   }
 
   calculateAttendancePercentage(present: number, total: number): number {
-    return (present / total) * 100;
+    return total > 0 ? (present / total) * 100 : 0;
+  }
+
+  refreshData() {
+    this.loadDashboardData();
+  }
+
+  trackByDepartment(index: number, item: DepartmentStat): string {
+    return item.department;
+  }
+
+  trackByActivity(index: number, item: RecentActivity): string {
+    return `${item.user}-${item.time}`;
+  }
+
+  trackByLeaveRequest(index: number, item: LeaveRequest): string {
+    return item._id || index.toString();
+  }
+
+  getProgressClass(percentage: number): string {
+    if (percentage >= 80) return 'progress-high';
+    if (percentage >= 60) return 'progress-medium';
+    return 'progress-low';
+  }
+
+  handleImageError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    if (img) {
+      img.src = 'https://ui-avatars.com/api/?name=User&background=random';
+    }
   }
 }

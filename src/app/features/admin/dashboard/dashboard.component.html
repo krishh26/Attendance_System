@@ -1,4 +1,13 @@
-<div class="dashboard-container">
+<div class="dashboard-container" *ngIf="!isLoading && !error; else loadingOrErrorTpl">
+  <!-- Header with Refresh Button -->
+  <div class="dashboard-header">
+    <h1>Dashboard</h1>
+    <button class="btn-refresh" (click)="refreshData()" title="Refresh Dashboard">
+      <i class="fas fa-sync-alt"></i>
+      Refresh
+    </button>
+  </div>
+
   <!-- Stats Cards -->
   <div class="stats-grid">
     <div class="stat-card">
@@ -51,21 +60,27 @@
     <!-- Attendance by Department -->
     <div class="card attendance-card">
       <div class="card-header">
-        <h2>Attendance by Department</h2>
-        <button class="btn-more">
+        <h2>Attendance by Center</h2>
+        <button class="btn-more" title="More options">
           <i class="fas fa-ellipsis-v"></i>
         </button>
       </div>
       <div class="attendance-list">
-        <div class="attendance-item" *ngFor="let dept of attendanceByDepartment">
+        <div class="attendance-item" *ngFor="let dept of attendanceByDepartment; trackBy: trackByDepartment">
           <div class="dept-info">
-            <h4>{{ dept.department }}</h4>
+            <h4>{{ dept.department || 'Unassigned' }}</h4>
             <p>{{ dept.present }}/{{ dept.total }} Present</p>
           </div>
           <div class="progress-bar">
-            <div class="progress" [style.width.%]="calculateAttendancePercentage(dept.present, dept.total)"></div>
+            <div class="progress" 
+                 [style.width.%]="calculateAttendancePercentage(dept.present, dept.total)"
+                 [ngClass]="getProgressClass(calculateAttendancePercentage(dept.present, dept.total))"></div>
           </div>
           <span class="percentage">{{ calculateAttendancePercentage(dept.present, dept.total) | number:'1.0-0' }}%</span>
+        </div>
+        <div *ngIf="attendanceByDepartment.length === 0" class="no-data">
+          <i class="fas fa-inbox"></i>
+          <p>No center data available</p>
         </div>
       </div>
     </div>
@@ -77,9 +92,11 @@
         <button class="btn-more">View All</button>
       </div>
       <div class="activity-list">
-        <div class="activity-item" *ngFor="let activity of recentActivities">
+        <div class="activity-item" *ngFor="let activity of recentActivities; trackBy: trackByActivity">
           <div class="activity-avatar">
-            <img [src]="activity.userAvatar" [alt]="activity.user">
+            <img [src]="activity.userAvatar || 'https://ui-avatars.com/api/?name=' + activity.user" 
+                 [alt]="activity.user"
+                 (error)="handleImageError($event)">
           </div>
           <div class="activity-content">
             <p>
@@ -92,6 +109,10 @@
             <i [class]="getActivityIcon(activity.type)"></i>
           </div>
         </div>
+        <div *ngIf="recentActivities.length === 0" class="no-data">
+          <i class="fas fa-inbox"></i>
+          <p>No recent activity</p>
+        </div>
       </div>
     </div>
 
@@ -102,24 +123,51 @@
         <button class="btn-more">View All</button>
       </div>
       <div class="leave-requests-list">
-        <div class="leave-request-item" *ngFor="let request of pendingLeaveRequests">
+        <div class="leave-request-item" *ngFor="let request of pendingLeaveRequests; trackBy: trackByLeaveRequest">
           <div class="request-info">
-            <h4>{{ request.employee }}</h4>
-            <p>{{ request.type }}</p>
+            <h4>{{ request.employee || 'Unknown Employee' }}</h4>
+            <p class="leave-type">{{ request.type || request.leaveType }}</p>
             <span class="date-range">{{ request.startDate }} - {{ request.endDate }}</span>
+            <p class="leave-reason" *ngIf="request.reason">{{ request.reason }}</p>
           </div>
           <div class="request-actions">
-            <button class="btn-approve">
+            <button class="btn-approve" title="Approve Leave Request">
               <i class="fas fa-check"></i>
               Approve
             </button>
-            <button class="btn-reject">
+            <button class="btn-reject" title="Reject Leave Request">
               <i class="fas fa-times"></i>
               Reject
             </button>
           </div>
         </div>
+        <div *ngIf="pendingLeaveRequests.length === 0" class="no-data">
+          <i class="fas fa-check-circle"></i>
+          <p>No pending requests</p>
+        </div>
       </div>
     </div>
   </div>
 </div>
+
+<!-- Loading Template -->
+<ng-template #loadingOrErrorTpl>
+  <div class="loading-error-container">
+    <div *ngIf="isLoading" class="loading-state">
+      <div class="loader-spinner"></div>
+      <h2>Loading Dashboard...</h2>
+      <p>Please wait while we fetch your data</p>
+    </div>
+    <div *ngIf="error && !isLoading" class="error-state">
+      <div class="error-icon">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <h2>Oops! Something went wrong</h2>
+      <p>{{ error }}</p>
+      <button class="btn-retry" (click)="refreshData()">
+        <i class="fas fa-redo"></i>
+        Try Again
+      </button>
+    </div>
+  </div>
+</ng-template>
