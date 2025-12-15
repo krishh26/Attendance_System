@@ -61,9 +61,6 @@
     <div class="card attendance-card">
       <div class="card-header">
         <h2>Attendance by Center</h2>
-        <button class="btn-more" title="More options">
-          <i class="fas fa-ellipsis-v"></i>
-        </button>
       </div>
       <div class="attendance-list">
         <div class="attendance-item" *ngFor="let dept of attendanceByDepartment; trackBy: trackByDepartment">
@@ -72,11 +69,11 @@
             <p>{{ dept.present }}/{{ dept.total }} Present</p>
           </div>
           <div class="progress-bar">
-            <div class="progress" 
-                 [style.width.%]="calculateAttendancePercentage(dept.present, dept.total)"
-                 [ngClass]="getProgressClass(calculateAttendancePercentage(dept.present, dept.total))"></div>
+            <div class="progress" [style.width.%]="calculateAttendancePercentage(dept.present, dept.total)"
+              [ngClass]="getProgressClass(calculateAttendancePercentage(dept.present, dept.total))"></div>
           </div>
-          <span class="percentage">{{ calculateAttendancePercentage(dept.present, dept.total) | number:'1.0-0' }}%</span>
+          <span class="percentage">{{ calculateAttendancePercentage(dept.present, dept.total) | number:'1.0-0'
+            }}%</span>
         </div>
         <div *ngIf="attendanceByDepartment.length === 0" class="no-data">
           <i class="fas fa-inbox"></i>
@@ -89,14 +86,12 @@
     <div class="card activity-card">
       <div class="card-header">
         <h2>Recent Activity</h2>
-        <button class="btn-more">View All</button>
       </div>
       <div class="activity-list">
         <div class="activity-item" *ngFor="let activity of recentActivities; trackBy: trackByActivity">
           <div class="activity-avatar">
-            <img [src]="activity.userAvatar || 'https://ui-avatars.com/api/?name=' + activity.user" 
-                 [alt]="activity.user"
-                 (error)="handleImageError($event)">
+            <img [src]="activity.userAvatar || 'https://ui-avatars.com/api/?name=' + activity.user"
+              [alt]="activity.user" (error)="handleImageError($event)">
           </div>
           <div class="activity-content">
             <p>
@@ -120,7 +115,6 @@
     <div class="card leave-requests-card">
       <div class="card-header">
         <h2>Pending Leave Requests</h2>
-        <button class="btn-more">View All</button>
       </div>
       <div class="leave-requests-list">
         <div class="leave-request-item" *ngFor="let request of pendingLeaveRequests; trackBy: trackByLeaveRequest">
@@ -131,11 +125,11 @@
             <p class="leave-reason" *ngIf="request.reason">{{ request.reason }}</p>
           </div>
           <div class="request-actions">
-            <button class="btn-approve" title="Approve Leave Request">
+            <button class="btn-approve" title="Approve Leave Request" (click)="approveLeave(request._id)">
               <i class="fas fa-check"></i>
               Approve
             </button>
-            <button class="btn-reject" title="Reject Leave Request">
+            <button class="btn-reject" title="Reject Leave Request" (click)="rejectLeave(request._id)">
               <i class="fas fa-times"></i>
               Reject
             </button>

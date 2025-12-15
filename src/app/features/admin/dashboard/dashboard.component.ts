@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { forkJoin } from 'rxjs';
+import { finalize } from 'rxjs/operators';
 import { DashboardService, DashboardStats, RecentActivity, DepartmentStat, LeaveRequest } from './dashboard.service';
 
 @Component({
@@ -34,67 +36,44 @@ export class DashboardComponent implements OnInit {
     this.isLoading = true;
     this.error = null;
 
-    // Load all data in parallel
-    this.dashboardService.getStats().subscribe({
+    forkJoin({
+      stats: this.dashboardService.getStats(),
+      recentActivities: this.dashboardService.getRecentActivity(5),
+      departmentStats: this.dashboardService.getDepartmentStats(),
+      leaveRequests: this.dashboardService.getPendingLeaveRequests(5)
+    }).pipe(
+      finalize(() => {
+        this.isLoading = false;
+      })
+    ).subscribe({
       next: (data) => {
-        this.stats = data;
-        this.checkLoadingComplete();
-      },
-      error: (error) => {
-        console.error('Error loading stats:', error);
-        this.handleError('Failed to load dashboard statistics');
-      }
-    });
+        // Stats
+        this.stats = data.stats;
 
-    this.dashboardService.getRecentActivity(5).subscribe({
-      next: (data) => {
-        this.recentActivities = data.map(activity => ({
+        // Recent Activity
+        this.recentActivities = data.recentActivities.map(activity => ({
           ...activity,
           time: this.formatTime(activity.time)
         }));
-        this.checkLoadingComplete();
-      },
-      error: (error) => {
-        console.error('Error loading recent activity:', error);
-        this.handleError('Failed to load recent activity');
-      }
-    });
 
-    this.dashboardService.getDepartmentStats().subscribe({
-      next: (data) => {
-        this.attendanceByDepartment = data;
-        this.checkLoadingComplete();
-      },
-      error: (error) => {
-        console.error('Error loading department stats:', error);
-        this.handleError('Failed to load department statistics');
-      }
-    });
+        // Department Stats
+        this.attendanceByDepartment = data.departmentStats;
 
-    this.dashboardService.getPendingLeaveRequests(5).subscribe({
-      next: (data) => {
-        this.pendingLeaveRequests = data.map(req => ({
+        // Leave Requests
+        this.pendingLeaveRequests = data.leaveRequests.map(req => ({
           ...req,
           employee: req.userId ? `${req.userId.firstname} ${req.userId.lastname}` : 'Unknown',
           type: req.leaveType,
           startDate: this.formatDate(req.startDate),
           endDate: this.formatDate(req.endDate)
         }));
-        this.checkLoadingComplete();
       },
       error: (error) => {
-        console.error('Error loading leave requests:', error);
-        this.handleError('Failed to load leave requests');
+        console.error('Error loading dashboard data:', error);
+        this.handleError('Failed to load dashboard data. Please try again.');
+        this.isLoading = false;
       }
     });
-  }
-
-  private checkLoadingComplete() {
-    // Simple check - in a real app, you might want to track each request separately
-    if (this.stats.totalEmployees > 0 || this.recentActivities.length > 0 || 
-        this.attendanceByDepartment.length > 0 || this.pendingLeaveRequests.length > 0) {
-      this.isLoading = false;
-    }
   }
 
   private handleError(message: string) {
@@ -182,6 +161,40 @@ export class DashboardComponent implements OnInit {
     const img = event.target as HTMLImageElement;
     if (img) {
       img.src = 'https://ui-avatars.com/api/?name=User&background=random';
+    }
+  }
+
+  approveLeave(id: string) {
+    if (confirm('Are you sure you want to approve this leave request?')) {
+      this.dashboardService.updateLeaveStatus(id, 'approved').subscribe({
+        next: () => {
+          // Remove from list
+          this.pendingLeaveRequests = this.pendingLeaveRequests.filter(req => req._id !== id);
+          // Update stats locally
+          this.stats.newRequests--;
+        },
+        error: (error) => {
+          console.error('Error approving leave:', error);
+          alert('Failed to approve leave request. Please try again.');
+        }
+      });
+    }
+  }
+
+  rejectLeave(id: string) {
+    if (confirm('Are you sure you want to reject this leave request?')) {
+      this.dashboardService.updateLeaveStatus(id, 'rejected').subscribe({
+        next: () => {
+          // Remove from list
+          this.pendingLeaveRequests = this.pendingLeaveRequests.filter(req => req._id !== id);
+          // Update stats locally
+          this.stats.newRequests--;
+        },
+        error: (error) => {
+          console.error('Error rejecting leave:', error);
+          alert('Failed to reject leave request. Please try again.');
+        }
+      });
     }
   }
 }

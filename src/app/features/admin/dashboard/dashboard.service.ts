@@ -101,5 +101,16 @@ export class DashboardService {
                 })
             );
     }
+
+    updateLeaveStatus(id: string, status: 'approved' | 'rejected'): Observable<LeaveRequest> {
+        return this.http.put<ApiResponse<LeaveRequest>>(`${environment.apiBaseUrl}/leave-management/leave-requests/${id}/status`, { status })
+            .pipe(
+                map(response => response.data),
+                catchError(error => {
+                    console.error(`Error updating leave request ${id} status to ${status}:`, error);
+                    return throwError(() => error);
+                })
+            );
+    }
 }
 
