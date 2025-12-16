@@ -1,11 +1,12 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import { TourService, Tour, CreateTourDto, UpdateTourDto } from '../services/tour.service';
 import { UserService, User } from '../../admin/user-list/user.service';
 import { PermissionService } from '../../../shared/services/permission.service';
+import { DateUtil } from '../../../shared/services/date.util';
 
 @Component({
   selector: 'app-tour-form',
@@ -28,7 +29,18 @@ export class TourFormComponent implements OnInit, OnDestroy {
   error: string | null = null;
   successMessage: string | null = null;
 
+  // Employee dropdown state
+  isEmployeeDropdownOpen = false;
+  employeesLoading = false;
+  employeesSearchTerm = '';
+  employeesPage = 1;
+  employeesLimit = 30;
+  employeesHasMore = true;
+  employeesTotal = 0;
+  filteredEmployees: User[] = [];
+
   private destroy$ = new Subject<void>();
+  private searchSubject$ = new Subject<string>();
 
   constructor(
     private fb: FormBuilder,
@@ -36,7 +48,8 @@ export class TourFormComponent implements OnInit, OnDestroy {
     private userService: UserService,
     private router: Router,
     private route: ActivatedRoute,
-    private permissionService: PermissionService
+    private permissionService: PermissionService,
+    private elementRef: ElementRef
   ) {
     this.tourForm = this.fb.group({
       assignedTo: ['', Validators.required],
@@ -49,8 +62,20 @@ export class TourFormComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.loadEmployees();
     this.checkPermissions();
+
+    // Setup debounced search for employees
+    this.searchSubject$
+      .pipe(
+        debounceTime(300),
+        distinctUntilChanged(),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(searchTerm => {
+        this.employeesSearchTerm = searchTerm;
+        this.employeesPage = 1;
+        this.loadEmployees(true);
+      });
 
     this.route.params.subscribe(params => {
       if (params['id']) {
@@ -59,6 +84,13 @@ export class TourFormComponent implements OnInit, OnDestroy {
         this.loadTour();
       }
     });
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.elementRef.nativeElement.contains(event.target) && this.isEmployeeDropdownOpen) {
+      this.isEmployeeDropdownOpen = false;
+    }
   }
 
   ngOnDestroy(): void {
@@ -94,21 +126,126 @@ export class TourFormComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Load employees for assignment
-  loadEmployees(): void {
-    this.userService.getUsers({ limit: 100, sortBy: 'firstname', sortOrder: 'asc' })
+  // Load employees for assignment with pagination and search
+  loadEmployees(reset: boolean = false): void {
+    if (reset) {
+      this.employees = [];
+      this.employeesPage = 1;
+      this.employeesHasMore = true;
+    }
+
+    if (!this.employeesHasMore && !reset) {
+      return;
+    }
+
+    this.employeesLoading = true;
+    this.userService.getUsers({ 
+      page: this.employeesPage, 
+      limit: this.employeesLimit,
+      search: this.employeesSearchTerm,
+      sortBy: 'firstname',
+      sortOrder: 'asc'
+    })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (response) => {
-          if (response && response.data) {
-            this.employees = response.data.filter(user => user.isActive);
+        next: (response: any) => {
+          // Handle nested response structure
+          const responseData = (response as any).data;
+          
+          // Extract users array - can be in response.data.data or response.data
+          let newEmployees: User[] = [];
+          if (Array.isArray(responseData?.data)) {
+            newEmployees = responseData.data.filter((user: any) => user.isActive);
+          } else if (Array.isArray(responseData)) {
+            newEmployees = responseData.filter((user: any) => user.isActive);
+          } else if (Array.isArray((response as any).data)) {
+            newEmployees = (response as any).data.filter((user: any) => user.isActive);
           }
+          
+          if (reset) {
+            this.employees = newEmployees;
+          } else {
+            this.employees = [...this.employees, ...newEmployees];
+          }
+          
+          // Check if there are more employees to load
+          const pagination = responseData?.pagination || (response as any).pagination;
+          if (pagination) {
+            this.employeesTotal = pagination.total || 0;
+            this.employeesHasMore = this.employees.length < pagination.total;
+          } else {
+            // Fallback: if we got less than limit, assume no more
+            this.employeesHasMore = newEmployees.length === this.employeesLimit;
+          }
+          
+          this.filterEmployees();
+          this.employeesLoading = false;
         },
         error: (error) => {
           console.error('Error loading employees:', error);
-          this.error = 'Failed to load employees. Please try again.';
+          this.employeesLoading = false;
+          if (reset) {
+            this.employees = [];
+            this.filteredEmployees = [];
+          }
         }
       });
+  }
+
+  // Handle employee search input
+  onEmployeeSearch(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    const searchTerm = target?.value || '';
+    this.searchSubject$.next(searchTerm);
+  }
+
+  // Handle scroll for pagination
+  onEmployeeScroll(event: Event): void {
+    const element = event.target as HTMLElement;
+    const scrollTop = element.scrollTop;
+    const scrollHeight = element.scrollHeight;
+    const clientHeight = element.clientHeight;
+
+    // Load more when scrolled to 80% of the list
+    if (scrollTop + clientHeight >= scrollHeight * 0.8 && !this.employeesLoading && this.employeesHasMore) {
+      this.employeesPage++;
+      this.loadEmployees(false);
+    }
+  }
+
+  // Filter employees (server-side search, so just use all loaded)
+  filterEmployees(): void {
+    this.filteredEmployees = [...this.employees];
+  }
+
+  // Toggle employee dropdown
+  toggleEmployeeDropdown(): void {
+    this.isEmployeeDropdownOpen = !this.isEmployeeDropdownOpen;
+    if (this.isEmployeeDropdownOpen && this.employees.length === 0) {
+      this.employeesSearchTerm = '';
+      this.loadEmployees(true);
+    }
+  }
+
+  // Select employee
+  selectEmployee(employee: User): void {
+    this.tourForm.patchValue({ assignedTo: employee._id });
+    this.isEmployeeDropdownOpen = false;
+  }
+
+  // Get selected employee display text
+  getSelectedEmployeeDisplayText(): string {
+    const selectedId = this.tourForm.get('assignedTo')?.value;
+    if (!selectedId) {
+      return 'Select an employee';
+    }
+    const employee = this.employees.find(emp => emp._id === selectedId);
+    return employee ? `${employee.firstname} ${employee.lastname} (${employee.email})` : 'Select an employee';
+  }
+
+  // Get employee display text for dropdown
+  getEmployeeDisplayText(employee: User): string {
+    return `${employee.firstname} ${employee.lastname} (${employee.email})`;
   }
 
   // Load tour for editing
@@ -142,14 +279,29 @@ export class TourFormComponent implements OnInit, OnDestroy {
   populateForm(): void {
     if (!this.tour) return;
 
+    // Convert UTC date from backend to IST datetime-local format for the input field
+    const expectedTimeIST = DateUtil.convertDateToDateTimeLocal(this.tour.expectedTime);
+
+    const assignedToId = this.tour.assignedTo?._id || '';
+    
     this.tourForm.patchValue({
-      assignedTo: this.tour.assignedTo?._id || '', // Safely handle null assignedTo
+      assignedTo: assignedToId,
       purpose: this.tour.purpose,
       location: this.tour.location,
-      expectedTime: new Date(this.tour.expectedTime).toISOString().slice(0, 16),
+      expectedTime: expectedTimeIST,
       userNotes: this.tour.userNotes || '',
       adminNotes: this.tour.adminNotes || ''
     });
+
+    // If we have an assigned employee, ensure it's in the employees list for display
+    if (assignedToId && this.tour.assignedTo) {
+      const employeeExists = this.employees.find(emp => emp._id === assignedToId);
+      if (!employeeExists) {
+        // Add the assigned employee to the list so it can be displayed
+        this.employees = [this.tour.assignedTo as any, ...this.employees];
+        this.filterEmployees();
+      }
+    }
   }
 
   // Submit form
@@ -165,13 +317,16 @@ export class TourFormComponent implements OnInit, OnDestroy {
 
     const formData = this.tourForm.value;
 
+    // Convert datetime-local value to IST format for backend
+    const expectedTimeIST = DateUtil.convertDateTimeLocalToIST(formData.expectedTime);
+
     if (this.isEditMode && this.tourId) {
       // Update existing tour
       const updateData: UpdateTourDto = {
         assignedTo: formData.assignedTo,
         purpose: formData.purpose,
         location: formData.location,
-        expectedTime: formData.expectedTime,
+        expectedTime: expectedTimeIST,
         userNotes: formData.userNotes || undefined,
         adminNotes: formData.adminNotes || undefined
       };
@@ -202,7 +357,7 @@ export class TourFormComponent implements OnInit, OnDestroy {
         assignedTo: formData.assignedTo,
         purpose: formData.purpose,
         location: formData.location,
-        expectedTime: formData.expectedTime,
+        expectedTime: expectedTimeIST,
         userNotes: formData.userNotes || undefined,
         adminNotes: formData.adminNotes || undefined
       };
@@ -243,7 +398,7 @@ export class TourFormComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Get employee display name
+  // Get employee display name (kept for backward compatibility)
   getEmployeeDisplayName(employeeId: string): string {
     const employee = this.employees.find(emp => emp._id === employeeId);
     return employee ? `${employee.firstname} ${employee.lastname}` : 'Unknown Employee';

@@ -202,6 +202,176 @@
             cursor: pointer;
           }
 
+          // Custom searchable dropdown styles
+          .custom-select-wrapper {
+            position: relative;
+            width: 100%;
+
+            .select-trigger {
+              position: relative;
+              cursor: pointer;
+
+              .select-input {
+                width: 100%;
+                padding: 12px 40px 12px 16px;
+                border: 1px solid #ced4da;
+                border-radius: 8px;
+                font-size: 14px;
+                background-color: white;
+                cursor: pointer;
+                transition: all 0.3s ease;
+
+                &:focus {
+                  outline: none;
+                  border-color: #3498db;
+                  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+                }
+
+                &::placeholder {
+                  color: #6c757d;
+                }
+              }
+
+              i {
+                position: absolute;
+                right: 16px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: #6c757d;
+                font-size: 14px;
+                transition: transform 0.3s ease;
+                pointer-events: none;
+              }
+
+              &.is-invalid {
+                .select-input {
+                  border-color: #e74c3c;
+                  box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+                }
+              }
+            }
+
+            &.open .select-trigger {
+              .select-input {
+                border-color: #3498db;
+                box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+              }
+
+              i {
+                transform: translateY(-50%) rotate(180deg);
+              }
+            }
+
+            .select-dropdown {
+              position: absolute;
+              top: calc(100% + 4px);
+              left: 0;
+              right: 0;
+              background: white;
+              border: 1px solid #ced4da;
+              border-radius: 8px;
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+              z-index: 1000;
+              max-height: 300px;
+              display: flex;
+              flex-direction: column;
+              overflow: hidden;
+
+              .select-search {
+                position: relative;
+                padding: 8px;
+                border-bottom: 1px solid #e9ecef;
+
+                .search-input {
+                  width: 100%;
+                  padding: 8px 32px 8px 12px;
+                  border: 1px solid #ced4da;
+                  border-radius: 6px;
+                  font-size: 14px;
+                  outline: none;
+                  transition: border-color 0.2s;
+
+                  &:focus {
+                    border-color: #3498db;
+                    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+                  }
+                }
+
+                i {
+                  position: absolute;
+                  right: 16px;
+                  top: 50%;
+                  transform: translateY(-50%);
+                  color: #6c757d;
+                  font-size: 14px;
+                  pointer-events: none;
+                }
+              }
+
+              .select-options {
+                overflow-y: auto;
+                max-height: 240px;
+                padding: 4px 0;
+
+                &::-webkit-scrollbar {
+                  width: 6px;
+                }
+
+                &::-webkit-scrollbar-track {
+                  background: #f1f1f1;
+                  border-radius: 3px;
+                }
+
+                &::-webkit-scrollbar-thumb {
+                  background: #c1c1c1;
+                  border-radius: 3px;
+
+                  &:hover {
+                    background: #a8a8a8;
+                  }
+                }
+
+                .select-option {
+                  padding: 10px 16px;
+                  cursor: pointer;
+                  font-size: 14px;
+                  color: #495057;
+                  transition: background-color 0.15s;
+
+                  &:hover {
+                    background-color: #f3f4f6;
+                  }
+
+                  &.selected {
+                    background-color: #e3f2fd;
+                    color: #1976d2;
+                    font-weight: 500;
+                  }
+                }
+
+                .select-loading,
+                .select-empty,
+                .select-end {
+                  padding: 12px 16px;
+                  text-align: center;
+                  font-size: 14px;
+                  color: #6c757d;
+                }
+
+                .select-loading {
+                  i {
+                    margin-right: 8px;
+                  }
+                }
+              }
+            }
+
+            &.loading .select-trigger {
+              pointer-events: none;
+              opacity: 0.7;
+            }
+          }
+
           .error-message {
             color: #e74c3c;
             font-size: 12px;

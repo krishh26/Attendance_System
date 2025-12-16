@@ -286,8 +286,26 @@ export class LeaveFormModalComponent implements OnInit, OnDestroy, OnChanges {
 
   private formatDateForInput(dateString: string): string {
     if (!dateString) return '';
+    
+    // If the date is already in YYYY-MM-DD format (from backend), return it directly
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      return dateString;
+    }
+    
+    // Otherwise, parse and format
     const date = new Date(dateString);
-    return date.toISOString().split('T')[0];
+    if (isNaN(date.getTime())) {
+      return '';
+    }
+    
+    // Format as YYYY-MM-DD in IST
+    // The date from backend is already in IST format (YYYY-MM-DD), so we just need to handle it
+    // If it's an ISO string, convert to IST date string
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
   }
 
   onLeaveTypeChange(): void {
@@ -318,10 +336,8 @@ export class LeaveFormModalComponent implements OnInit, OnDestroy, OnChanges {
   validateForm(): boolean {
     this.error = null;
 
-    if (!this.formData.userId) {
-      this.error = 'Please select an employee';
-      return false;
-    }
+    // userId is optional - if not provided, backend will use logged-in user
+    // No need to validate userId here
 
     if (!this.formData.startDate) {
       this.error = 'Please select a start date';
@@ -361,8 +377,7 @@ export class LeaveFormModalComponent implements OnInit, OnDestroy, OnChanges {
     this.loading = true;
     this.error = null;
 
-    const requestData = {
-      userId: this.formData.userId,
+    const requestData: any = {
       leaveType: this.formData.leaveType,
       startDate: this.formData.startDate,
       endDate: this.formData.endDate,
@@ -371,6 +386,12 @@ export class LeaveFormModalComponent implements OnInit, OnDestroy, OnChanges {
       halfDayType: this.formData.isHalfDay ? this.formData.halfDayType : undefined,
       notes: this.formData.notes?.trim() || undefined
     };
+
+    // Only include userId if it's selected (not empty/null/undefined)
+    // If not provided, backend will use the logged-in user from the access token
+    if (this.formData.userId && this.formData.userId.trim() !== '') {
+      requestData.userId = this.formData.userId;
+    }
 
     const request = this.isEditMode && this.leaveRequest
       ? this.leaveService.updateLeaveRequest(this.leaveRequest._id, requestData)

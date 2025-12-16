@@ -46,17 +46,48 @@
         <div class="form-row">
           <div class="form-group">
             <label for="assignedTo">Assign to Employee *</label>
-            <select 
-              id="assignedTo" 
-              formControlName="assignedTo"
-              class="form-control"
-              [class.is-invalid]="hasError('assignedTo', 'required')"
-            >
-              <option value="">Select an employee</option>
-              <option *ngFor="let employee of employees" [value]="employee._id">
-                {{ employee.firstname }} {{ employee.lastname }} ({{ employee.email }})
-              </option>
-            </select>
+            <div class="custom-select-wrapper" [class.open]="isEmployeeDropdownOpen" [class.loading]="employeesLoading">
+              <div class="select-trigger" (click)="toggleEmployeeDropdown()" [class.is-invalid]="hasError('assignedTo', 'required')">
+                <input
+                  type="text"
+                  class="select-input"
+                  [value]="getSelectedEmployeeDisplayText()"
+                  (focus)="isEmployeeDropdownOpen = true"
+                  placeholder="Select or search employee..."
+                  readonly>
+                <i class="fas" [ngClass]="isEmployeeDropdownOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+              </div>
+              <div class="select-dropdown" *ngIf="isEmployeeDropdownOpen">
+                <div class="select-search">
+                  <input
+                    type="text"
+                    [value]="employeesSearchTerm"
+                    (input)="onEmployeeSearch($event)"
+                    placeholder="Type to search..."
+                    class="search-input">
+                  <i class="fas fa-search"></i>
+                </div>
+                <div class="select-options" (scroll)="onEmployeeScroll($event)">
+                  <div
+                    *ngFor="let employee of filteredEmployees"
+                    class="select-option"
+                    [class.selected]="tourForm.get('assignedTo')?.value === employee._id"
+                    (click)="selectEmployee(employee)">
+                    {{ getEmployeeDisplayText(employee) }}
+                  </div>
+                  <div *ngIf="employeesLoading" class="select-loading">
+                    <i class="fas fa-spinner fa-spin"></i> Loading more...
+                  </div>
+                  <div *ngIf="!employeesLoading && filteredEmployees.length === 0" class="select-empty">
+                    No employees found
+                  </div>
+                  <div *ngIf="!employeesHasMore && filteredEmployees.length > 0" class="select-end">
+                    End of list
+                  </div>
+                </div>
+              </div>
+            </div>
+            <input type="hidden" formControlName="assignedTo">
             <div *ngIf="hasError('assignedTo', 'required')" class="error-message">
               {{ getErrorMessage('assignedTo', 'required') }}
             </div>
