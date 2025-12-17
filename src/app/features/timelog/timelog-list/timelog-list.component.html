@@ -152,6 +152,54 @@
             class="filter-input">
         </div>
 
+        <!-- State Filter -->
+        <div class="filter-group">
+          <label class="filter-label">
+            <i class="fas fa-flag"></i>
+            State
+          </label>
+          <select
+            class="filter-select"
+            [(ngModel)]="selectedStateId"
+            (ngModelChange)="onStateChange()">
+            <option value="">All States</option>
+            <option *ngFor="let state of states" [ngValue]="state._id">
+              {{ state.name }}
+            </option>
+          </select>
+        </div>
+
+        <!-- City Filter -->
+        <div class="filter-group">
+          <label class="filter-label">
+            <i class="fas fa-city"></i>
+            City
+          </label>
+          <select
+            class="filter-select"
+            [(ngModel)]="selectedCityId"
+            (ngModelChange)="onCityChange()">
+            <option value="">All Cities</option>
+            <option *ngFor="let city of cities" [ngValue]="city._id">
+              {{ city.name }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Taluka Filter -->
+        <div class="filter-group">
+          <label class="filter-label">
+            <i class="fas fa-map-marker-alt"></i>
+            Taluka / Center
+          </label>
+          <input
+            type="text"
+            class="filter-input"
+            placeholder="Enter taluka or center"
+            [(ngModel)]="taluka"
+            (input)="onTalukaChange()">
+        </div>
+
         <!-- Rows per page -->
         <div class="filter-group">
           <label class="filter-label">

@@ -6,6 +6,8 @@ import { TimelogService, TimeLogEntry, TimeLogResponse, TimeLogParams } from '..
 import { AttendanceService } from '../services/attendance.service';
 import { AttendanceModalComponent } from './attendance-modal/attendance-modal.component';
 import { AdminTimeLogModalComponent } from './admin-timelog-modal/admin-timelog-modal.component';
+import { StateService, State } from '../../admin/user-list/services/state.service';
+import { CityService, City } from '../../admin/user-list/services/city.service';
 import * as XLSX from 'xlsx';
 
 @Component({
@@ -28,6 +30,13 @@ export class TimelogListComponent implements OnInit, OnDestroy {
   searchTerm = '';
   selectedDate: string;
   selectedStatus = 'all';
+  selectedStateId = '';
+  selectedCityId = '';
+  taluka = '';
+
+  // Location dropdown data
+  states: State[] = [];
+  cities: City[] = [];
 
   // Pagination properties
   currentPage = 1;
@@ -63,10 +72,13 @@ export class TimelogListComponent implements OnInit, OnDestroy {
   // RxJS subjects for cleanup
   private destroy$ = new Subject<void>();
   private searchSubject$ = new Subject<string>();
+  private filtersSubject$ = new Subject<void>();
 
   constructor(
     private timelogService: TimelogService,
-    private attendanceService: AttendanceService
+    private attendanceService: AttendanceService,
+    private stateService: StateService,
+    private cityService: CityService
   ) {
     // Set default date to today
     this.selectedDate = this.timelogService.getTodayDate();
@@ -74,6 +86,9 @@ export class TimelogListComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.setupSearch();
+    this.setupFilters();
+    this.loadStates();
+    this.loadCities(); // preload cities so dropdown has data even if state not selected
     this.loadTimeLogs();
     this.checkCurrentStatus();
   }
@@ -97,16 +112,33 @@ export class TimelogListComponent implements OnInit, OnDestroy {
       });
   }
 
+  // Debounce other filters (state, city, taluka) to avoid rapid calls
+  private setupFilters(): void {
+    this.filtersSubject$
+      .pipe(takeUntil(this.destroy$), debounceTime(200))
+      .subscribe(() => {
+        this.currentPage = 1;
+        this.loadTimeLogs();
+      });
+  }
+
   // Load time logs from API
   loadTimeLogs(): void {
     this.loading = true;
     this.error = null;
 
+    const stateName = this.getSelectedStateName();
+    const cityName = this.getSelectedCityName();
+    const center = this.taluka.trim() || undefined;
+
     const params: TimeLogParams = {
       date: this.selectedDate,
       page: this.currentPage,
       limit: this.itemsPerPage,
-      search: this.searchTerm.trim() || undefined
+      search: this.searchTerm.trim() || undefined,
+      state: stateName,
+      city: cityName,
+      center
     };
 
     this.timelogService.getAllUsersTimeLogs(params)
@@ -162,6 +194,69 @@ export class TimelogListComponent implements OnInit, OnDestroy {
   onDateChange(): void {
     this.currentPage = 1;
     this.loadTimeLogs();
+  }
+
+  // Location dropdown helpers
+  loadStates(): void {
+    this.stateService.getStates()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          this.states = response.data || [];
+        },
+        error: (error) => {
+          console.warn('Failed to load states:', error);
+        }
+      });
+  }
+
+  loadCities(stateId?: string): void {
+    const cities$ = stateId
+      ? this.cityService.getCitiesByState(stateId)
+      : this.cityService.getCities();
+
+    cities$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          this.cities = response.data || [];
+        },
+        error: (error) => {
+          console.warn('Failed to load cities:', error);
+          this.cities = [];
+        }
+      });
+  }
+
+  onStateChange(): void {
+    // Reset city when state changes
+    this.selectedCityId = '';
+    if (this.selectedStateId) {
+      this.loadCities(this.selectedStateId);
+    } else {
+      this.loadCities();
+    }
+    this.triggerFiltersChange();
+  }
+
+  onCityChange(): void {
+    this.triggerFiltersChange();
+  }
+
+  onTalukaChange(): void {
+    this.triggerFiltersChange();
+  }
+
+  private triggerFiltersChange(): void {
+    this.filtersSubject$.next();
+  }
+
+  private getSelectedStateName(): string | undefined {
+    return this.states.find(state => state._id === this.selectedStateId)?.name;
+  }
+
+  private getSelectedCityName(): string | undefined {
+    return this.cities.find(city => city._id === this.selectedCityId)?.name;
   }
 
   // Handle status filter change
@@ -274,6 +369,10 @@ export class TimelogListComponent implements OnInit, OnDestroy {
     this.searchTerm = '';
     this.selectedDate = this.timelogService.getTodayDate();
     this.selectedStatus = 'all';
+    this.selectedStateId = '';
+    this.selectedCityId = '';
+    this.taluka = '';
+    this.loadCities();
     this.currentPage = 1;
     this.loadTimeLogs();
   }
@@ -282,7 +381,10 @@ export class TimelogListComponent implements OnInit, OnDestroy {
   hasActiveFilters(): boolean {
     return this.searchTerm.trim() !== '' ||
            this.selectedStatus !== 'all' ||
-           this.selectedDate !== this.timelogService.getTodayDate();
+           this.selectedDate !== this.timelogService.getTodayDate() ||
+           !!this.selectedStateId ||
+           !!this.selectedCityId ||
+           this.taluka.trim() !== '';
   }
 
   // Handle page size change

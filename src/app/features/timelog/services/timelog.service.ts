@@ -47,6 +47,9 @@ export interface TimeLogParams {
   page: number;
   limit: number;
   search?: string;
+  state?: string;
+  city?: string;
+  center?: string; // taluka/center filter
 }
 
 @Injectable({
@@ -57,12 +60,24 @@ export class TimelogService {
 
   // Get all users time logs with pagination and date filter
   getAllUsersTimeLogs(params: TimeLogParams): Observable<TimeLogResponse> {
-    const { date, page, limit, search } = params;
+    const { date, page, limit, search, state, city, center } = params;
     let endpoint = `/attendance/admin/all-users?date=${date}&page=${page}&limit=${limit}`;
     
     // Add search parameter if provided
     if (search && search.trim()) {
       endpoint += `&search=${encodeURIComponent(search.trim())}`;
+    }
+
+    if (state && state.trim()) {
+      endpoint += `&state=${encodeURIComponent(state.trim())}`;
+    }
+
+    if (city && city.trim()) {
+      endpoint += `&city=${encodeURIComponent(city.trim())}`;
+    }
+
+    if (center && center.trim()) {
+      endpoint += `&center=${encodeURIComponent(center.trim())}`;
     }
     
     return this.apiService.get<TimeLogResponse>(endpoint).pipe(
