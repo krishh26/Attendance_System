@@ -25,6 +25,9 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
   roles: Role[] = [];
   states: State[] = [];
   cities: City[] = [];
+  reportingStates: State[] = [];
+  reportingCities: City[] = [];
+  allCities: City[] = []; // Store all cities for reporting city selection
   loading = false;
   error: string | null = null;
   isEditMode = false;
@@ -52,13 +55,16 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
       state: ['', Validators.required],
       center: ['', Validators.required],
       pincode: ['', [Validators.required, Validators.pattern(/^\d{5,6}$/)]],
-      designation: ['']
+      designation: [''],
+      reportingState: [[]],
+      reportingCity: [[]]
     });
   }
 
       ngOnInit(): void {
     this.loadRoles();
     this.loadStates();
+    this.loadAllCities(); // Load all cities for reporting city selection
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -121,10 +127,48 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
       .subscribe({
         next: (response: any) => {
           this.states = response.data.sort((a: any, b: any) => a.name.localeCompare(b.name));
+          this.reportingStates = [...this.states]; // Copy for reporting state selection
         },
         error: (error: any) => {
           console.error('Error loading states:', error);
           this.error = 'Failed to load states';
+        }
+      });
+  }
+
+  loadAllCities(): void {
+    // Load cities from all states for reporting city selection
+    this.stateService.getStates()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response: any) => {
+          const allStates = response.data || [];
+          // Filter out states without _id
+          const validStates = allStates.filter((state: any) => state && state._id);
+          const cityPromises = validStates.map((state: any) => 
+            this.cityService.getCitiesByState(state._id).toPromise().catch((err: any) => {
+              console.warn(`Error loading cities for state ${state._id}:`, err);
+              return { data: [] }; // Return empty data on error
+            })
+          );
+          
+          Promise.all(cityPromises)
+            .then((cityResponses: any[]) => {
+              const allCitiesList: City[] = [];
+              cityResponses.forEach((cityResponse: any) => {
+                if (cityResponse?.data && Array.isArray(cityResponse.data)) {
+                  allCitiesList.push(...cityResponse.data);
+                }
+              });
+              this.allCities = allCitiesList.sort((a: any, b: any) => a.name.localeCompare(b.name));
+              this.reportingCities = [...this.allCities];
+            })
+            .catch((error: any) => {
+              console.error('Error loading all cities:', error);
+            });
+        },
+        error: (error: any) => {
+          console.error('Error loading states for cities:', error);
         }
       });
   }
@@ -153,11 +197,55 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
 
   onStateChange(): void {
     const selectedStateId = this.userForm.get('state')?.value;
-    this.loadCitiesByState(selectedStateId);
+    if (selectedStateId && typeof selectedStateId === 'string') {
+      this.loadCitiesByState(selectedStateId);
+    } else {
+      this.cities = [];
+      this.userForm.patchValue({ city: '' });
+    }
   }
 
   populateForm(): void {
     if (this.user && this.roles.length > 0) {
+      // Convert reporting state/city names to IDs for form
+      const reportingStateIds: string[] = [];
+      const reportingCityIds: string[] = [];
+      
+      if (this.user.reportingState && this.user.reportingState.length > 0 && this.states.length > 0) {
+        this.user.reportingState.forEach(stateName => {
+          const state = this.states.find(s => s.name === stateName);
+          if (state) {
+            reportingStateIds.push(state._id);
+          }
+        });
+      }
+      
+      // Wait for allCities to load before populating reportingCity
+      if (this.user.reportingCity && this.user.reportingCity.length > 0) {
+        if (this.allCities.length > 0) {
+          this.user.reportingCity.forEach(cityName => {
+            const city = this.allCities.find(c => c.name === cityName);
+            if (city) {
+              reportingCityIds.push(city._id);
+            }
+          });
+        } else {
+          // If cities not loaded yet, wait a bit and try again
+          setTimeout(() => {
+            if (this.user?.reportingCity && this.allCities.length > 0) {
+              const cityIds: string[] = [];
+              this.user.reportingCity.forEach(cityName => {
+                const city = this.allCities.find(c => c.name === cityName);
+                if (city) {
+                  cityIds.push(city._id);
+                }
+              });
+              this.userForm.patchValue({ reportingCity: cityIds });
+            }
+          }, 500);
+        }
+      }
+
       this.userForm.patchValue({
         firstname: this.user.firstname,
         lastname: this.user.lastname,
@@ -171,7 +259,9 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
         state: this.user.state,
         center: this.user.center,
         pincode: this.user.pincode,
-        designation: this.user.designation || ''
+        designation: this.user.designation || '',
+        reportingState: reportingStateIds,
+        reportingCity: reportingCityIds
       });
 
       // Make password optional for edit mode
@@ -200,10 +290,33 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
       const selectedState = this.states.find(state => state._id === formData.state);
       const selectedCity = this.cities.find(city => city._id === formData.city);
       
+      // Convert reporting state/city IDs to names
+      const reportingStateNames: string[] = [];
+      if (formData.reportingState && Array.isArray(formData.reportingState)) {
+        formData.reportingState.forEach((stateId: string) => {
+          const state = this.states.find(s => s._id === stateId);
+          if (state) {
+            reportingStateNames.push(state.name);
+          }
+        });
+      }
+      
+      const reportingCityNames: string[] = [];
+      if (formData.reportingCity && Array.isArray(formData.reportingCity)) {
+        formData.reportingCity.forEach((cityId: string) => {
+          const city = this.allCities.find(c => c._id === cityId);
+          if (city) {
+            reportingCityNames.push(city.name);
+          }
+        });
+      }
+      
       const processedFormData = {
         ...formData,
         state: selectedState ? selectedState.name : formData.state,
-        city: selectedCity ? selectedCity.name : formData.city
+        city: selectedCity ? selectedCity.name : formData.city,
+        reportingState: reportingStateNames,
+        reportingCity: reportingCityNames
       };
 
       if (this.isEditMode && this.user) {

@@ -6,6 +6,7 @@ import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import { UserService, User, UserListParams, RoleRef } from './user.service';
 import { UserFormModalComponent } from './user-form-modal/user-form-modal.component';
 import { ConfirmModalComponent } from './confirm-modal/confirm-modal.component';
+import { DateRangeModalComponent } from './date-range-modal/date-range-modal.component';
 import { AuditLogsService, AuditLog } from '../../audit-logs/services/audit-logs.service';
 import { StateService } from './services/state.service';
 import { CityService } from './services/city.service';
@@ -16,7 +17,7 @@ import { ApiService } from '../../../shared/services/api.service';
   templateUrl: './user-list.component.html',
   styleUrls: ['./user-list.component.scss'],
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, UserFormModalComponent, ConfirmModalComponent]
+  imports: [CommonModule, RouterModule, FormsModule, UserFormModalComponent, ConfirmModalComponent, DateRangeModalComponent]
 })
 export class UserListComponent implements OnInit, OnDestroy {
   users: User[] = [];
@@ -66,10 +67,13 @@ export class UserListComponent implements OnInit, OnDestroy {
   showStatusModal = false;
   showImportModal = false;
   showLogoutModal = false;
+  showReportModal = false;
   selectedUser: User | null = null;
   deleteLoading = false;
   statusLoading = false;
   logoutLoading = false;
+  reportLoading = false;
+  
   nextActiveState: boolean | null = null;
   userLogs: AuditLog[] = [];
   selectedFile: File | null = null;
@@ -673,6 +677,50 @@ export class UserListComponent implements OnInit, OnDestroy {
       case 'deactivate':
         this.openStatusModal(user);
         break;
+      case 'download-report':
+        this.openReportModal(user);
+        break;
     }
+  }
+
+  openReportModal(user: User): void {
+    this.selectedUser = user;
+    this.showReportModal = true;
+  }
+
+  closeReportModal(): void {
+    this.showReportModal = false;
+    this.selectedUser = null;
+    this.reportLoading = false;
+  }
+
+  onReportDateRangeConfirm(dateRange: { startDate: string; endDate: string }): void {
+    if (!this.selectedUser) return;
+    
+    this.reportLoading = true;
+    this.userService.downloadComprehensiveReport(
+      this.selectedUser._id,
+      dateRange.startDate,
+      dateRange.endDate
+    )
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (blob: Blob) => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          const fileName = `User_Report_${this.selectedUser?.firstname}_${this.selectedUser?.lastname}_${dateRange.startDate}_to_${dateRange.endDate}.xlsx`;
+          a.download = fileName;
+          a.click();
+          window.URL.revokeObjectURL(url);
+          this.reportLoading = false;
+          this.closeReportModal();
+        },
+        error: (error) => {
+          console.error('Error downloading report:', error);
+          this.reportLoading = false;
+          alert('Failed to download report. Please try again.');
+        }
+      });
   }
 }

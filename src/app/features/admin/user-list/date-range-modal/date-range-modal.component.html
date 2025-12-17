@@ -1,0 +1,51 @@
+<div class="modal-overlay" *ngIf="isOpen" (click)="onCancel()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>{{ title }}</h3>
+      <button class="close" (click)="onCancel()" [disabled]="loading">×</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-group">
+        <label for="startDate">Start Date</label>
+        <input
+          type="date"
+          id="startDate"
+          [(ngModel)]="startDate"
+          class="form-control"
+          [disabled]="loading"
+          required>
+      </div>
+
+      <div class="form-group">
+        <label for="endDate">End Date</label>
+        <input
+          type="date"
+          id="endDate"
+          [(ngModel)]="endDate"
+          class="form-control"
+          [disabled]="loading"
+          required>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button
+        type="button"
+        class="btn-secondary"
+        (click)="onCancel()"
+        [disabled]="loading">
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="btn-primary"
+        (click)="onConfirm()"
+        [disabled]="loading || !startDate || !endDate">
+        <span *ngIf="loading" class="spinner"></span>
+        Download Report
+      </button>
+    </div>
+  </div>
+</div>
+

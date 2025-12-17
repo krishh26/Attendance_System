@@ -116,6 +116,36 @@
       </div>
 
       <div class="form-group">
+        <label for="reportingState">Reporting State (Multiple Selection)</label>
+        <select
+          id="reportingState"
+          formControlName="reportingState"
+          multiple
+          class="multi-select"
+          size="5">
+          <option *ngFor="let state of reportingStates" [value]="state._id">
+            {{ state.name }}
+          </option>
+        </select>
+        <small class="form-hint">Hold Ctrl (Windows) or Cmd (Mac) to select multiple states</small>
+      </div>
+
+      <div class="form-group">
+        <label for="reportingCity">Reporting City (Multiple Selection)</label>
+        <select
+          id="reportingCity"
+          formControlName="reportingCity"
+          multiple
+          class="multi-select"
+          size="5">
+          <option *ngFor="let city of reportingCities" [value]="city._id">
+            {{ city.name }}
+          </option>
+        </select>
+        <small class="form-hint">Hold Ctrl (Windows) or Cmd (Mac) to select multiple cities</small>
+      </div>
+
+      <div class="form-group">
         <label for="addressline1">Address Line 1 </label>
         <input
           id="addressline1"

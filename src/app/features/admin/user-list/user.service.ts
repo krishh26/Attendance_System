@@ -24,6 +24,8 @@ export interface User {
   center: string;
   pincode: string;
   designation?: string;
+  reportingState?: string[];
+  reportingCity?: string[];
   isActive: boolean;
   isLoggedIn?: boolean;
   createdAt: string;
@@ -44,6 +46,8 @@ export interface CreateUserRequest {
   center: string;
   pincode: string;
   designation?: string;
+  reportingState?: string[];
+  reportingCity?: string[];
 }
 
 export interface UpdateUserRequest {
@@ -60,6 +64,8 @@ export interface UpdateUserRequest {
   center?: string;
   pincode?: string;
   designation?: string;
+  reportingState?: string[];
+  reportingCity?: string[];
   isActive?: boolean;
 }
 
@@ -133,5 +139,15 @@ export class UserService {
 
   logoutFromAllDevices(userId: string): Observable<any> {
     return this.apiService.post<any>(`/users/${userId}/logout-all-devices`, {});
+  }
+
+  downloadComprehensiveReport(userId: string, startDate: string, endDate: string): Observable<Blob> {
+    const params = new URLSearchParams();
+    params.append('startDate', startDate);
+    params.append('endDate', endDate);
+    return (this.apiService as any).http.get(
+      `${(this.apiService as any).baseUrl}/users/${userId}/report/download?${params.toString()}`,
+      { responseType: 'blob' }
+    );
   }
 }

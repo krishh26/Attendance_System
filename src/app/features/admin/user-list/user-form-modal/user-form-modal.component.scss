@@ -160,6 +160,20 @@
       background-color: white;
       cursor: pointer;
 
+      &.multi-select {
+        min-height: 120px;
+        padding: 8px;
+        
+        option {
+          padding: 6px 8px;
+          
+          &:checked {
+            background-color: #007bff;
+            color: white;
+          }
+        }
+      }
+
       &:focus {
         background-color: white;
       }
@@ -208,6 +222,14 @@
           color: #343a40;
         }
       }
+    }
+
+    .form-hint {
+      display: block;
+      margin-top: 6px;
+      font-size: 0.85rem;
+      color: #6c757d;
+      font-style: italic;
     }
   }
 

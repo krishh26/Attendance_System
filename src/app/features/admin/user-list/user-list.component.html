@@ -328,6 +328,13 @@
                   <i class="fas fa-circle"></i>
                   <span>Not logged in</span>
                 </div>
+                <button 
+                  class="menu-item" 
+                  (click)="handleAction('download-report', user, $event)"
+                  title="Download Report">
+                  <i class="fas fa-download"></i>
+                  <span>Download Report</span>
+                </button>
               </div>
             </div>
           </td>
@@ -436,6 +443,15 @@
     (confirm)="onLogoutConfirm()"
     (cancel)="closeLogoutModal()">
   </app-confirm-modal>
+
+  <!-- Date Range Modal for Report Download -->
+  <app-date-range-modal
+    [isOpen]="showReportModal"
+    title="Download Compulsory Report"
+    [loading]="reportLoading"
+    (confirm)="onReportDateRangeConfirm($event)"
+    (cancel)="closeReportModal()">
+  </app-date-range-modal>
 
   <!-- Logs Modal -->
   <div class="modal-overlay" *ngIf="showLogsModal">
