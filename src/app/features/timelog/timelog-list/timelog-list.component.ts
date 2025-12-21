@@ -329,17 +329,73 @@ export class TimelogListComponent implements OnInit, OnDestroy {
     return entry.userId?.firstname + ' ' + entry.userId?.lastname || 'Unknown Employee';
   }
 
-  // Get total hours (placeholder - calculate based on check-in/out times)
-  getTotalHours(entry: TimeLogEntry): string {
-    if (entry.isCheckedOut) {
-      // Calculate hours between check-in and check-out
-      const checkIn = new Date(entry.checkInTime);
-      const checkOut = new Date(entry.updatedAt);
-      const diffMs = checkOut.getTime() - checkIn.getTime();
-      const diffHours = diffMs / (1000 * 60 * 60);
-      return diffHours.toFixed(1);
+  // Format hours and minutes as "X hour(s) Y min"
+  formatHoursAndMinutes(totalHours: number): string {
+    if (totalHours <= 0) {
+      return '0 min';
     }
-    return '--';
+    
+    const hours = Math.floor(totalHours);
+    const minutes = Math.round((totalHours - hours) * 60);
+    
+    const parts: string[] = [];
+    
+    if (hours > 0) {
+      parts.push(`${hours} ${hours === 1 ? 'hour' : 'hours'}`);
+    }
+    
+    if (minutes > 0) {
+      parts.push(`${minutes} min`);
+    }
+    
+    // If less than 1 hour, show only minutes
+    if (hours === 0 && minutes === 0) {
+      return '0 min';
+    }
+    
+    return parts.join(' ');
+  }
+
+  // Get total hours - use backend calculated value or calculate from check-in/out times
+  getTotalHours(entry: TimeLogEntry): string {
+    if (!entry.isCheckedOut || !entry.checkOutTime) {
+      return '--';
+    }
+    
+    let totalHours: number;
+    
+    // Use backend calculated totalHours if available
+    if (entry.totalHours !== undefined && entry.totalHours !== null) {
+      totalHours = entry.totalHours;
+    } else {
+      // Otherwise calculate from check-in and check-out times
+      try {
+        const checkIn = new Date(entry.checkInTime);
+        const checkOut = new Date(entry.checkOutTime);
+        
+        // Validate dates
+        if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) {
+          return '--';
+        }
+        
+        // Calculate difference in milliseconds
+        const diffMs = checkOut.getTime() - checkIn.getTime();
+        
+        // Ensure positive value
+        if (diffMs < 0) {
+          return '--';
+        }
+        
+        // Convert to hours
+        totalHours = diffMs / (1000 * 60 * 60);
+      } catch (error) {
+        console.error('Error calculating total hours:', error);
+        return '--';
+      }
+    }
+    
+    // Format as "X hour(s) Y min"
+    return this.formatHoursAndMinutes(totalHours);
   }
 
   // Open map with coordinates
@@ -542,7 +598,7 @@ export class TimelogListComponent implements OnInit, OnDestroy {
         'Date': this.formatDateForExport(entry.date),
         'Check In Time': entry.checkInTime ? this.formatTimeForExport(entry.checkInTime) : 'Not Checked In',
         'Check Out Time': entry.checkOutTime ? this.formatTimeForExport(entry.checkOutTime) : 'Not Checked Out',
-        'Total Hours': entry.totalHours ? entry.totalHours.toFixed(2) : '0.00',
+        'Total Hours': entry.totalHours ? this.formatHoursAndMinutes(entry.totalHours) : '0 min',
         'Status': this.getStatusText(entry.status),
         'Session Number': entry.sessionNumber || 1,
         'Check In Location': this.formatLocation(entry.checkInLatitude, entry.checkInLongitude),

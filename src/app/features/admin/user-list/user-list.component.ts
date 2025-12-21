@@ -113,11 +113,21 @@ export class UserListComponent implements OnInit, OnDestroy {
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    // Check if click is outside action menu containers
+    if (!target.closest('.action-menu-container')) {
+      this.closeActionMenu();
+    }
     if (!this.elementRef.nativeElement.contains(event.target)) {
       this.isStateDropdownOpen = false;
       this.isCityDropdownOpen = false;
-      this.openActionMenuId = null;
     }
+  }
+  
+  @HostListener('window:scroll', ['$event'])
+  onWindowScroll(): void {
+    // Close dropdown on scroll to prevent positioning issues
+    this.closeActionMenu();
   }
 
   loadStates(reset: boolean = false): void {
@@ -638,11 +648,96 @@ export class UserListComponent implements OnInit, OnDestroy {
 
   toggleActionMenu(userId: string, event: Event): void {
     event.stopPropagation();
-    this.openActionMenuId = this.openActionMenuId === userId ? null : userId;
+    const wasOpen = this.openActionMenuId === userId;
+    this.openActionMenuId = wasOpen ? null : userId;
+    
+    // If opening, calculate and set dropdown position
+    if (!wasOpen && event.target) {
+      setTimeout(() => {
+        this.updateDropdownPosition(event.target as HTMLElement);
+      }, 0);
+    }
+  }
+  
+  private updateDropdownPosition(buttonElement: HTMLElement): void {
+    // Find the closest action-menu-container to get the correct dropdown
+    const container = buttonElement.closest('.action-menu-container');
+    if (!container) return;
+    
+    const dropdown = container.querySelector('.action-menu-dropdown') as HTMLElement;
+    if (!dropdown || !buttonElement) return;
+    
+    // Get button position relative to viewport (getBoundingClientRect gives viewport coordinates)
+    const rect = buttonElement.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    // Get actual dropdown dimensions after it's rendered
+    const dropdownRect = dropdown.getBoundingClientRect();
+    const dropdownHeight = dropdownRect.height || 400; // Fallback to estimate if not measured
+    const dropdownWidth = dropdownRect.width || 220; // Fallback to min-width if not measured
+    
+    // Calculate position using viewport coordinates (for fixed positioning)
+    // Show below button by default, aligned to right edge
+    let top = rect.bottom + 8;
+    let left = rect.right - dropdownWidth; // Align right edge of dropdown with right edge of button
+    
+    // Adjust if dropdown would go off screen bottom
+    if (top + dropdownHeight > viewportHeight - 8) {
+      // Show above button instead
+      top = rect.top - dropdownHeight - 8;
+      // Ensure it doesn't go above viewport
+      if (top < 8) {
+        top = 8;
+        // If still too tall, allow scrolling within viewport
+        dropdown.style.maxHeight = `${viewportHeight - top - 16}px`;
+        dropdown.style.overflowY = 'auto';
+      } else {
+        dropdown.style.maxHeight = '';
+        dropdown.style.overflowY = '';
+      }
+    } else {
+      dropdown.style.maxHeight = '';
+      dropdown.style.overflowY = '';
+    }
+    
+    // Adjust if dropdown would go off screen right
+    if (rect.right - dropdownWidth < 8) {
+      // Align to left side of button
+      left = rect.left;
+      dropdown.setAttribute('data-align-left', 'true');
+    } else {
+      dropdown.removeAttribute('data-align-left');
+    }
+    
+    // Ensure dropdown doesn't go off screen left
+    if (left < 8) {
+      left = 8;
+    }
+    
+    // Set position using fixed positioning (viewport coordinates)
+    dropdown.style.position = 'fixed';
+    dropdown.style.top = `${top}px`;
+    dropdown.style.left = `${left}px`;
+    dropdown.style.right = 'auto';
+    dropdown.style.zIndex = '10000';
   }
 
   closeActionMenu(): void {
     this.openActionMenuId = null;
+    // Clean up any dropdown positioning styles
+    const dropdowns = document.querySelectorAll('.action-menu-dropdown');
+    dropdowns.forEach((dropdown: Element) => {
+      const el = dropdown as HTMLElement;
+      el.style.top = '';
+      el.style.left = '';
+      el.style.right = '';
+      el.style.position = '';
+      el.style.zIndex = '';
+      el.style.maxHeight = '';
+      el.style.overflowY = '';
+      el.removeAttribute('data-align-left');
+    });
   }
 
   isActionMenuOpen(userId: string): boolean {

@@ -536,7 +536,7 @@
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: visible; // Changed from hidden to visible to allow dropdown to show
 
   table {
     width: 100%;
@@ -587,6 +587,12 @@
 
     tbody tr:hover {
       background-color: #f3f7ff;
+    }
+    
+    // Ensure actions column allows dropdown overflow
+    td.actions {
+      overflow: visible !important;
+      position: relative;
     }
   }
 }
@@ -646,14 +652,16 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  overflow: visible; // Ensure dropdown is not clipped
 
   .action-menu-container {
     position: relative;
+    z-index: 1; // Ensure container is above table cells
   }
 
   .btn-menu-toggle {
     background: #fff;
-    border: 1px solid #e2e6ea;
+    border: 1px solid #e5e7eb;
     padding: 8px;
     width: 36px;
     height: 36px;
@@ -662,53 +670,86 @@
     justify-content: center;
     cursor: pointer;
     border-radius: 6px;
-    color: #6c757d;
+    color: #6b7280;
     transition: all 0.15s ease;
+    position: relative;
 
     &:hover {
-      background-color: #f8f9fa;
-      color: #343a40;
-      border-color: #d6d8db;
+      background-color: #f9fafb;
+      color: #374151;
+      border-color: #d1d5db;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     }
 
     &.active {
-      background-color: #007bff;
+      background-color: #2563eb;
       color: white;
-      border-color: #007bff;
+      border-color: #2563eb;
+      box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
     }
 
     &:focus-visible {
       outline: none;
-      box-shadow: 0 0 0 3px rgba(0,123,255,0.25);
-      border-color: #007bff;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+      border-color: #2563eb;
     }
 
     i {
       font-size: 0.875rem;
+      line-height: 1;
     }
   }
 
   .action-menu-dropdown {
-    position: absolute;
-    top: calc(100% + 4px);
-    right: 0;
+    position: fixed !important; // Fixed positioning to render outside table
+    top: auto;
+    right: auto;
+    left: auto;
     background: white;
-    border: 1px solid #dee2e6;
+    border: 1px solid #e5e7eb;
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    min-width: 200px;
-    max-width: 250px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.05);
+    z-index: 10000 !important; // Very high z-index to ensure it's above all elements
+    min-width: 220px;
+    max-width: 280px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    padding: 4px 0;
+    padding: 6px 0;
+    animation: dropdownFadeIn 0.15s ease-out;
     
-    // Ensure dropdown doesn't go off screen on the right
-    @media (max-width: 768px) {
-      right: auto;
-      left: 0;
-      min-width: 180px;
+    // Arrow pointer at the top
+    &::before {
+      content: '';
+      position: absolute;
+      top: -6px;
+      right: 16px;
+      width: 12px;
+      height: 12px;
+      background: white;
+      border-left: 1px solid #e5e7eb;
+      border-top: 1px solid #e5e7eb;
+      transform: rotate(45deg);
+      z-index: 1;
+    }
+    
+    // If dropdown aligned to left
+    &[data-align-left] {
+      &::before {
+        right: auto;
+        left: 16px;
+      }
+    }
+    
+    @keyframes dropdownFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .menu-item {
@@ -720,27 +761,47 @@
       background: transparent;
       text-align: left;
       cursor: pointer;
-      transition: background-color 0.15s ease;
-      color: #495057;
+      transition: all 0.15s ease;
+      color: #374151;
       font-size: 0.875rem;
+      font-weight: 400;
       width: 100%;
+      white-space: nowrap;
+      position: relative;
 
       i {
         width: 18px;
         font-size: 0.875rem;
-        color: #6c757d;
+        color: #6b7280;
         flex-shrink: 0;
+        text-align: center;
+        transition: color 0.15s ease;
       }
 
       span {
         flex: 1;
+        line-height: 1.5;
       }
 
       &:hover {
-        background-color: #f8f9fa;
+        background-color: #f9fafb;
+        color: #111827;
         
         i {
-          color: #495057;
+          color: #374151;
+        }
+      }
+      
+      &:active {
+        background-color: #f3f4f6;
+      }
+      
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        
+        &:hover {
+          background-color: transparent;
         }
       }
 
@@ -750,47 +811,62 @@
       }
 
       &.menu-item-danger {
-        color: #dc3545;
+        color: #dc2626;
         
         i {
-          color: #dc3545;
+          color: #dc2626;
         }
 
         &:hover {
-          background-color: #fff5f5;
+          background-color: #fef2f2;
+          color: #b91c1c;
+          
+          i {
+            color: #b91c1c;
+          }
         }
       }
 
       &.menu-item-warning {
-        color: #ffc107;
+        color: #d97706;
         
         i {
-          color: #ffc107;
+          color: #d97706;
         }
 
         &:hover {
-          background-color: #fffbf0;
+          background-color: #fffbeb;
+          color: #b45309;
+          
+          i {
+            color: #b45309;
+          }
         }
       }
 
       &.menu-item-success {
-        color: #198754;
+        color: #16a34a;
         
         i {
-          color: #198754;
+          color: #16a34a;
         }
 
         &:hover {
-          background-color: #f0f9f4;
+          background-color: #f0fdf4;
+          color: #15803d;
+          
+          i {
+            color: #15803d;
+          }
         }
       }
 
       &.menu-item-info {
-        color: #6c757d;
+        color: #6b7280;
         cursor: default;
         
         i {
-          color: #6c757d;
+          color: #6b7280;
           font-size: 0.625rem;
         }
 

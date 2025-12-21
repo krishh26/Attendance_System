@@ -175,7 +175,7 @@
       <!-- Total Hours Display -->
       <div *ngIf="formData.checkInTime && formData.checkOutTime" class="total-hours">
         <i class="fas fa-clock"></i>
-        <span>Total Hours: {{ calculateTotalHours() }} hours</span>
+        <span>Total Hours: {{ getFormattedTotalHours() }}</span>
       </div>
 
       <!-- Error Message -->

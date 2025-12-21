@@ -116,33 +116,69 @@
       </div>
 
       <div class="form-group">
-        <label for="reportingState">Reporting State (Multiple Selection)</label>
-        <select
+        <label for="reportingState">
+          Reporting State (Multiple Selection)
+          <span class="selected-count" *ngIf="getSelectedCount('reportingState') > 0">
+            ({{ getSelectedCount('reportingState') }} selected)
+          </span>
+        </label>
+        <ng-select
           id="reportingState"
           formControlName="reportingState"
-          multiple
-          class="multi-select"
-          size="5">
-          <option *ngFor="let state of reportingStates" [value]="state._id">
-            {{ state.name }}
-          </option>
-        </select>
-        <small class="form-hint">Hold Ctrl (Windows) or Cmd (Mac) to select multiple states</small>
+          [items]="reportingStates"
+          bindLabel="name"
+          bindValue="_id"
+          [multiple]="true"
+          [closeOnSelect]="false"
+          [clearable]="true"
+          [searchable]="true"
+          placeholder="Select reporting states..."
+          [class.invalid]="isFieldInvalid('reportingState')">
+        </ng-select>
+        <small class="form-hint">
+          <span *ngIf="getSelectedCount('reportingState') > 0" class="selected-info">
+            {{ getSelectedCount('reportingState') }} state(s) selected
+          </span>
+          <span *ngIf="getSelectedCount('reportingState') === 0">
+            Select one or more reporting states
+          </span>
+        </small>
+        <div class="error-text" *ngIf="isFieldInvalid('reportingState')">
+          {{ getFieldError('reportingState') }}
+        </div>
       </div>
 
       <div class="form-group">
-        <label for="reportingCity">Reporting City (Multiple Selection)</label>
-        <select
+        <label for="reportingCity">
+          Reporting City (Multiple Selection)
+          <span class="selected-count" *ngIf="getSelectedCount('reportingCity') > 0">
+            ({{ getSelectedCount('reportingCity') }} selected)
+          </span>
+        </label>
+        <ng-select
           id="reportingCity"
           formControlName="reportingCity"
-          multiple
-          class="multi-select"
-          size="5">
-          <option *ngFor="let city of reportingCities" [value]="city._id">
-            {{ city.name }}
-          </option>
-        </select>
-        <small class="form-hint">Hold Ctrl (Windows) or Cmd (Mac) to select multiple cities</small>
+          [items]="reportingCities"
+          bindLabel="name"
+          bindValue="_id"
+          [multiple]="true"
+          [closeOnSelect]="false"
+          [clearable]="true"
+          [searchable]="true"
+          placeholder="Select reporting cities..."
+          [class.invalid]="isFieldInvalid('reportingCity')">
+        </ng-select>
+        <small class="form-hint">
+          <span *ngIf="getSelectedCount('reportingCity') > 0" class="selected-info">
+            {{ getSelectedCount('reportingCity') }} city(ies) selected
+          </span>
+          <span *ngIf="getSelectedCount('reportingCity') === 0">
+            Select one or more reporting cities
+          </span>
+        </small>
+        <div class="error-text" *ngIf="isFieldInvalid('reportingCity')">
+          {{ getFieldError('reportingCity') }}
+        </div>
       </div>
 
       <div class="form-group">

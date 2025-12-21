@@ -1,7 +1,9 @@
 import { Component, OnInit, OnDestroy, Input, Output, EventEmitter, OnChanges, SimpleChanges, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, forkJoin, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
+import { NgSelectModule } from '@ng-select/ng-select';
 import { UserService, User, CreateUserRequest, UpdateUserRequest } from '../user.service';
 import { RoleService, Role } from '../role.service';
 import { StateService, State } from '../services/state.service';
@@ -12,7 +14,7 @@ import { CityService, City } from '../services/city.service';
   templateUrl: './user-form-modal.component.html',
   styleUrls: ['./user-form-modal.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, NgSelectModule],
   providers: [StateService, CityService]
 })
 export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
@@ -70,31 +72,139 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['user'] && this.user) {
       this.isEditMode = true;
-      // Wait for roles to be loaded before populating
-      if (this.roles.length > 0) {
-        this.populateForm();
-      } else {
-        // Load roles first, then populate form
-        this.roleService.getRoles({ limit: 100 })
-          .pipe(takeUntil(this.destroy$))
-          .subscribe({
-            next: (response) => {
-              this.roles = response.data.filter(role => role.isActive);
-              this.populateForm();
-            },
-            error: (error) => {
-              console.error('Error loading roles:', error);
-              this.error = 'Failed to load roles';
-            }
-          });
-      }
+      // Wait for all necessary data to be loaded before populating
+      this.ensureDataLoaded();
     } else if (changes['user'] && !this.user) {
       this.isEditMode = false;
       this.userForm.reset();
       // Reset password validation for add mode
       this.userForm.get('password')?.setValidators([Validators.required, Validators.minLength(6)]);
       this.userForm.get('password')?.updateValueAndValidity();
+      // Reset form arrays
+      this.userForm.patchValue({
+        reportingState: [],
+        reportingCity: []
+      });
     }
+  }
+
+  private ensureDataLoaded(): void {
+    const observables: any[] = [];
+
+    // Ensure roles are loaded
+    if (this.roles.length === 0) {
+      observables.push(
+        this.roleService.getRoles({ limit: 100 })
+          .pipe(
+            takeUntil(this.destroy$),
+            map((response: any) => {
+              this.roles = response.data.filter((role: Role) => role.isActive);
+              return true;
+            }),
+            catchError((error: any) => {
+              console.error('Error loading roles:', error);
+              this.error = 'Failed to load roles';
+              return of(false);
+            })
+          )
+      );
+    } else {
+      observables.push(of(true));
+    }
+
+    // Ensure states are loaded
+    if (this.states.length === 0) {
+      observables.push(
+        this.stateService.getStates()
+          .pipe(
+            takeUntil(this.destroy$),
+            map((response: any) => {
+              this.states = response.data.sort((a: any, b: any) => a.name.localeCompare(b.name));
+              this.reportingStates = [...this.states];
+              return this.states;
+            }),
+            catchError((error: any) => {
+              console.error('Error loading states:', error);
+              this.error = 'Failed to load states';
+              return of([]);
+            })
+          )
+      );
+    } else {
+      observables.push(of(this.states));
+    }
+
+    // Ensure all cities are loaded for reporting city selection
+    if (this.allCities.length === 0) {
+      observables.push(
+        this.stateService.getStates()
+          .pipe(
+            takeUntil(this.destroy$),
+            map((response: any) => {
+              const allStates = response.data || [];
+              return allStates.filter((state: any) => state && state._id);
+            }),
+            catchError((error: any) => {
+              console.error('Error loading states for cities:', error);
+              return of([]);
+            })
+          )
+      );
+    } else {
+      observables.push(of([]));
+    }
+
+    // Execute all observables
+    forkJoin(observables)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: ([rolesLoaded, statesData, allStatesForCities]: any[]) => {
+          // Load all cities if needed
+          if (this.allCities.length === 0 && Array.isArray(allStatesForCities) && allStatesForCities.length > 0) {
+            const cityObservables = allStatesForCities.map((state: any) =>
+              this.cityService.getCitiesByState(state._id)
+                .pipe(
+                  takeUntil(this.destroy$),
+                  map((response: any) => response.data || []),
+                  catchError((err: any) => {
+                    console.warn(`Error loading cities for state ${state._id}:`, err);
+                    return of([]);
+                  })
+                )
+            );
+
+            forkJoin(cityObservables)
+              .pipe(takeUntil(this.destroy$))
+              .subscribe({
+                next: (cityResponses: any[]) => {
+                  const allCitiesList: City[] = [];
+                  cityResponses.forEach((cities: City[]) => {
+                    if (Array.isArray(cities)) {
+                      allCitiesList.push(...cities);
+                    }
+                  });
+                  this.allCities = allCitiesList.sort((a: any, b: any) => a.name.localeCompare(b.name));
+                  this.reportingCities = [...this.allCities];
+                  // Now populate the form
+                  this.populateForm();
+                },
+                error: (error: any) => {
+                  console.error('Error loading all cities:', error);
+                  // Still try to populate form even if cities fail
+                  this.populateForm();
+                }
+              });
+          } else {
+            // Data already loaded, populate form
+            this.populateForm();
+          }
+        },
+        error: (error: any) => {
+          console.error('Error loading data:', error);
+          // Still try to populate form
+          this.populateForm();
+        }
+      });
   }
 
   ngOnDestroy(): void {
@@ -176,7 +286,9 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
   loadCitiesByState(stateId: string): void {
     if (!stateId) {
       this.cities = [];
-      this.userForm.patchValue({ city: '' });
+      if (!this.isEditMode) {
+        this.userForm.patchValue({ city: '' });
+      }
       return;
     }
 
@@ -185,8 +297,16 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
       .subscribe({
         next: (response: any) => {
           this.cities = response.data.sort((a: any, b: any) => a.name.localeCompare(b.name));
-          // Reset city selection when state changes
-          this.userForm.patchValue({ city: '' });
+          // Only reset city selection when state changes in add mode
+          if (!this.isEditMode) {
+            this.userForm.patchValue({ city: '' });
+          } else if (this.user?.city) {
+            // In edit mode, find and set the city ID
+            const selectedCity = this.cities.find(city => city.name === this.user?.city);
+            if (selectedCity) {
+              this.userForm.patchValue({ city: selectedCity._id });
+            }
+          }
         },
         error: (error: any) => {
           console.error('Error loading cities:', error);
@@ -207,10 +327,13 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
 
   populateForm(): void {
     if (this.user && this.roles.length > 0) {
-      // Convert reporting state/city names to IDs for form
+      // Extract role ID (role can be object or string)
+      const roleId = typeof this.user.role === 'object' && this.user.role?._id 
+        ? this.user.role._id 
+        : this.user.role;
+
+      // Convert reporting state names to IDs for form
       const reportingStateIds: string[] = [];
-      const reportingCityIds: string[] = [];
-      
       if (this.user.reportingState && this.user.reportingState.length > 0 && this.states.length > 0) {
         this.user.reportingState.forEach(stateName => {
           const state = this.states.find(s => s.name === stateName);
@@ -219,61 +342,90 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
           }
         });
       }
-      
-      // Wait for allCities to load before populating reportingCity
-      if (this.user.reportingCity && this.user.reportingCity.length > 0) {
-        if (this.allCities.length > 0) {
+
+      // Convert reporting city names to IDs for form
+      const populateReportingCities = () => {
+        const reportingCityIds: string[] = [];
+        if (this.user?.reportingCity && this.user.reportingCity.length > 0 && this.allCities.length > 0) {
           this.user.reportingCity.forEach(cityName => {
             const city = this.allCities.find(c => c.name === cityName);
             if (city) {
               reportingCityIds.push(city._id);
             }
           });
-        } else {
-          // If cities not loaded yet, wait a bit and try again
-          setTimeout(() => {
-            if (this.user?.reportingCity && this.allCities.length > 0) {
-              const cityIds: string[] = [];
-              this.user.reportingCity.forEach(cityName => {
-                const city = this.allCities.find(c => c.name === cityName);
-                if (city) {
-                  cityIds.push(city._id);
-                }
-              });
-              this.userForm.patchValue({ reportingCity: cityIds });
-            }
-          }, 500);
+        }
+        return reportingCityIds;
+      };
+
+      // Find state ID by name
+      let stateId = '';
+      if (this.user?.state && this.states.length > 0) {
+        const selectedState = this.states.find(state => state.name === this.user?.state);
+        if (selectedState) {
+          stateId = selectedState._id;
         }
       }
 
+      // Set initial form values
       this.userForm.patchValue({
-        firstname: this.user.firstname,
-        lastname: this.user.lastname,
-        email: this.user.email,
+        firstname: this.user.firstname || '',
+        lastname: this.user.lastname || '',
+        email: this.user.email || '',
         password: '', // Don't populate password for edit
-        role: this.user.role,
-        mobilenumber: this.user.mobilenumber,
-        addressline1: this.user.addressline1,
-        addressline2: this.user.addressline2,
-        city: this.user.city,
-        state: this.user.state,
-        center: this.user.center,
-        pincode: this.user.pincode,
+        role: roleId || '',
+        mobilenumber: this.user.mobilenumber || '',
+        addressline1: this.user.addressline1 || '',
+        addressline2: this.user.addressline2 || '',
+        state: stateId,
+        center: this.user.center || '',
+        pincode: this.user.pincode || '',
         designation: this.user.designation || '',
-        reportingState: reportingStateIds,
-        reportingCity: reportingCityIds
+        reportingState: reportingStateIds
       });
 
       // Make password optional for edit mode
       this.userForm.get('password')?.clearValidators();
       this.userForm.get('password')?.updateValueAndValidity();
 
-      // For edit mode, we need to find the state ID by name and load cities
-      if (this.user?.state && this.states.length > 0) {
-        const selectedState = this.states.find(state => state.name === this.user?.state);
-        if (selectedState) {
-          this.userForm.patchValue({ state: selectedState._id });
-          this.loadCitiesByState(selectedState._id);
+      // Load cities for the selected state, then set city and reportingCity
+      if (stateId) {
+        this.loadCitiesByState(stateId);
+        // Wait for cities to load before setting city field
+        setTimeout(() => {
+          if (this.user?.city && this.cities.length > 0) {
+            const selectedCity = this.cities.find(city => city.name === this.user?.city);
+            if (selectedCity) {
+              this.userForm.patchValue({ city: selectedCity._id });
+            }
+          }
+          
+          // Set reporting cities after all cities are loaded
+          const reportingCityIds = populateReportingCities();
+          if (reportingCityIds.length > 0) {
+            this.userForm.patchValue({ reportingCity: reportingCityIds });
+          }
+        }, 300);
+      } else {
+        // If no state, still try to populate reporting cities if allCities is loaded
+        if (this.allCities.length > 0) {
+          const reportingCityIds = populateReportingCities();
+          if (reportingCityIds.length > 0) {
+            this.userForm.patchValue({ reportingCity: reportingCityIds });
+          }
+        } else {
+          // Wait for allCities to load
+          const checkInterval = setInterval(() => {
+            if (this.allCities.length > 0) {
+              clearInterval(checkInterval);
+              const reportingCityIds = populateReportingCities();
+              if (reportingCityIds.length > 0) {
+                this.userForm.patchValue({ reportingCity: reportingCityIds });
+              }
+            }
+          }, 200);
+          
+          // Clear interval after 5 seconds to avoid infinite loop
+          setTimeout(() => clearInterval(checkInterval), 5000);
         }
       }
     }
@@ -291,22 +443,27 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
       const selectedCity = this.cities.find(city => city._id === formData.city);
       
       // Convert reporting state/city IDs to names
+      // ng-select with bindValue returns array of IDs directly
       const reportingStateNames: string[] = [];
-      if (formData.reportingState && Array.isArray(formData.reportingState)) {
+      if (formData.reportingState && Array.isArray(formData.reportingState) && formData.reportingState.length > 0) {
         formData.reportingState.forEach((stateId: string) => {
-          const state = this.states.find(s => s._id === stateId);
-          if (state) {
-            reportingStateNames.push(state.name);
+          if (stateId) {
+            const state = this.states.find(s => s._id === stateId);
+            if (state) {
+              reportingStateNames.push(state.name);
+            }
           }
         });
       }
       
       const reportingCityNames: string[] = [];
-      if (formData.reportingCity && Array.isArray(formData.reportingCity)) {
+      if (formData.reportingCity && Array.isArray(formData.reportingCity) && formData.reportingCity.length > 0) {
         formData.reportingCity.forEach((cityId: string) => {
-          const city = this.allCities.find(c => c._id === cityId);
-          if (city) {
-            reportingCityNames.push(city.name);
+          if (cityId) {
+            const city = this.allCities.find(c => c._id === cityId);
+            if (city) {
+              reportingCityNames.push(city.name);
+            }
           }
         });
       }
@@ -414,5 +571,27 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
   isFieldInvalid(fieldName: string): boolean {
     const field = this.userForm.get(fieldName);
     return !!(field?.invalid && field?.touched);
+  }
+
+  getSelectedCount(fieldName: string): number {
+    const field = this.userForm.get(fieldName);
+    const value = field?.value;
+    if (Array.isArray(value) && value.length > 0) {
+      return value.length;
+    }
+    return 0;
+  }
+
+  getSelectedItems(fieldName: string, items: any[]): string {
+    const field = this.userForm.get(fieldName);
+    const value = field?.value;
+    if (Array.isArray(value) && value.length > 0 && items.length > 0) {
+      const selected = items.filter(item => value.includes(item._id));
+      if (selected.length <= 3) {
+        return selected.map(item => item.name).join(', ');
+      }
+      return `${selected.slice(0, 3).map(item => item.name).join(', ')} and ${selected.length - 3} more`;
+    }
+    return 'None selected';
   }
 }

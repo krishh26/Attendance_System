@@ -223,12 +223,64 @@ export class AdminTimeLogModalComponent implements OnInit, OnChanges {
       return 0;
     }
 
-    const checkIn = new Date(`${this.formData.date}T${this.formData.checkInTime}`);
-    const checkOut = new Date(`${this.formData.date}T${this.formData.checkOutTime}`);
-    const diffMs = checkOut.getTime() - checkIn.getTime();
-    const diffHours = diffMs / (1000 * 60 * 60);
+    try {
+      // Parse check-in and check-out times
+      const checkIn = new Date(`${this.formData.date}T${this.formData.checkInTime}`);
+      const checkOut = new Date(`${this.formData.date}T${this.formData.checkOutTime}`);
+      
+      // Validate dates
+      if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) {
+        return 0;
+      }
+      
+      // Calculate difference in milliseconds
+      const diffMs = checkOut.getTime() - checkIn.getTime();
+      
+      // Ensure positive value
+      if (diffMs < 0) {
+        return 0;
+      }
+      
+      // Convert to hours and round to 2 decimal places
+      const diffHours = diffMs / (1000 * 60 * 60);
+      return Math.round(diffHours * 100) / 100;
+    } catch (error) {
+      console.error('Error calculating total hours:', error);
+      return 0;
+    }
+  }
 
-    return Math.round(diffHours * 100) / 100;
+  // Format hours and minutes as "X hour(s) Y min"
+  formatHoursAndMinutes(totalHours: number): string {
+    if (totalHours <= 0) {
+      return '0 min';
+    }
+    
+    const hours = Math.floor(totalHours);
+    const minutes = Math.round((totalHours - hours) * 60);
+    
+    const parts: string[] = [];
+    
+    if (hours > 0) {
+      parts.push(`${hours} ${hours === 1 ? 'hour' : 'hours'}`);
+    }
+    
+    if (minutes > 0) {
+      parts.push(`${minutes} min`);
+    }
+    
+    // If less than 1 hour, show only minutes
+    if (hours === 0 && minutes === 0) {
+      return '0 min';
+    }
+    
+    return parts.join(' ');
+  }
+
+  // Get formatted total hours for display
+  getFormattedTotalHours(): string {
+    const totalHours = this.calculateTotalHours();
+    return this.formatHoursAndMinutes(totalHours);
   }
 
   onClose(): void {
