@@ -154,7 +154,8 @@
 
   <!-- Results meta -->
   <div class="results-meta" *ngIf="!loading && totalUsers > 0">
-    <span>{{ rangeStart }}–{{ rangeEnd }} of {{ totalUsers }} users</span>
+    <i class="fas fa-info-circle" style="margin-right: 8px; color: #6b7280;"></i>
+    <span>Showing {{ rangeStart }}–{{ rangeEnd }} of {{ totalUsers }} {{ totalUsers === 1 ? 'user' : 'users' }}</span>
   </div>
 
   <!-- Import Modal -->
@@ -249,16 +250,26 @@
             <img [src]="getProfileImage(user)" [alt]="getFullName(user)" class="user-avatar">
             <span class="user-name">{{ getFullName(user) }}</span>
           </td>
-          <td>{{ user.email }}</td>
+          <td>
+            <span class="email-cell">{{ user.email }}</span>
+          </td>
           <td>
             <span class="role-badge" [ngClass]="getRoleClass(user)">
               {{ user?.role?.displayName || user?.role?.name || 'No Role' }}
             </span>
           </td>
-          <td>{{ user.mobilenumber }}</td>
-          <td>{{ user.designation || '-' }}</td>
-          <td>{{ user.center }}</td>
-          <td>{{ user.createdAt | date:'shortDate' }}</td>
+          <td>
+            <span class="mobile-cell">{{ user.mobilenumber }}</span>
+          </td>
+          <td>
+            <span class="designation-cell">{{ user.designation || '-' }}</span>
+          </td>
+          <td>
+            <span class="center-cell">{{ user.center || '-' }}</span>
+          </td>
+          <td>
+            <span class="date-cell">{{ user.createdAt | date:'MMM d, y' }}</span>
+          </td>
           <td>
             <span class="status-badge" [ngClass]="getStatusClass(user.isActive)">
               {{ getStatusText(user.isActive) }}
