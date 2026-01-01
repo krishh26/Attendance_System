@@ -52,10 +52,12 @@
       <button class="btn-export" (click)="exportToExcel()" title="Export to Excel">
         <i class="fas fa-file-excel"></i>
       </button>
-      <button *ngIf="isAdmin" class="btn-add" (click)="onAdminButtonClick()" [title]="getAdminButtonText()" style="background-color: #007bff;">
+      <button *ngIf="canCreate()" class="btn-add" (click)="onAdminButtonClick()" [title]="getAdminButtonText()"
+        style="background-color: #007bff;">
         <i [class]="getAdminButtonIcon()"></i>
       </button>
-      <button *ngIf="!isAdmin" class="btn-add" (click)="onAttendanceButtonClick()" [title]="getAttendanceButtonText()" [style.background-color]="getAttendanceButtonColor()">
+      <button *ngIf="!isAdmin" class="btn-add" (click)="onAttendanceButtonClick()" [title]="getAttendanceButtonText()"
+        [style.background-color]="getAttendanceButtonColor()">
         <i [class]="getAttendanceButtonIcon()"></i>
       </button>
     </div>
@@ -73,46 +75,31 @@
       <!-- Search Box -->
       <div class="search-box">
         <i class="fas fa-search"></i>
-        <input
-          type="text"
-          placeholder="Search by name, email, or mobile..."
-          [value]="searchTerm"
+        <input type="text" placeholder="Search by name, email, or mobile..." [value]="searchTerm"
           (input)="onSearchChange($event)">
-        <button 
-          *ngIf="searchTerm" 
-          class="btn-clear-search" 
-          (click)="clearSearch()" 
-          title="Clear search">
+        <button *ngIf="searchTerm" class="btn-clear-search" (click)="clearSearch()" title="Clear search">
           <i class="fas fa-times"></i>
         </button>
       </div>
 
       <!-- Status Filter Buttons -->
       <div class="filter-buttons">
-        <button
-          class="btn-filter"
-          [class.active]="selectedStatus === 'all'"
+        <button class="btn-filter" [class.active]="selectedStatus === 'all'"
           (click)="selectedStatus = 'all'; onStatusChange()">
           <i class="fas fa-list"></i>
           All
         </button>
-        <button
-          class="btn-filter"
-          [class.active]="selectedStatus === 'present'"
+        <button class="btn-filter" [class.active]="selectedStatus === 'present'"
           (click)="selectedStatus = 'present'; onStatusChange()">
           <i class="fas fa-check-circle"></i>
           Present
         </button>
-        <button
-          class="btn-filter"
-          [class.active]="selectedStatus === 'late'"
+        <button class="btn-filter" [class.active]="selectedStatus === 'late'"
           (click)="selectedStatus = 'late'; onStatusChange()">
           <i class="fas fa-clock"></i>
           Late
         </button>
-        <button
-          class="btn-filter"
-          [class.active]="selectedStatus === 'absent'"
+        <button class="btn-filter" [class.active]="selectedStatus === 'absent'"
           (click)="selectedStatus = 'absent'; onStatusChange()">
           <i class="fas fa-times-circle"></i>
           Absent
@@ -127,10 +114,7 @@
           <i class="fas fa-filter"></i>
           Additional Filters
         </span>
-        <button
-          *ngIf="hasActiveFilters()"
-          class="btn-clear-filters"
-          (click)="clearAllFilters()"
+        <button *ngIf="hasActiveFilters()" class="btn-clear-filters" (click)="clearAllFilters()"
           title="Clear all filters">
           <i class="fas fa-times"></i>
           Clear Filters
@@ -144,12 +128,7 @@
             <i class="fas fa-calendar-alt"></i>
             Date
           </label>
-          <input
-            type="date"
-            id="dateFilter"
-            [(ngModel)]="selectedDate"
-            (change)="onDateChange()"
-            class="filter-input">
+          <input type="date" id="dateFilter" [(ngModel)]="selectedDate" (change)="onDateChange()" class="filter-input">
         </div>
 
         <!-- State Filter -->
@@ -158,10 +137,7 @@
             <i class="fas fa-flag"></i>
             State
           </label>
-          <select
-            class="filter-select"
-            [(ngModel)]="selectedStateId"
-            (ngModelChange)="onStateChange()">
+          <select class="filter-select" [(ngModel)]="selectedStateId" (ngModelChange)="onStateChange()">
             <option value="">All States</option>
             <option *ngFor="let state of states" [ngValue]="state._id">
               {{ state.name }}
@@ -175,10 +151,7 @@
             <i class="fas fa-city"></i>
             City
           </label>
-          <select
-            class="filter-select"
-            [(ngModel)]="selectedCityId"
-            (ngModelChange)="onCityChange()">
+          <select class="filter-select" [(ngModel)]="selectedCityId" (ngModelChange)="onCityChange()">
             <option value="">All Cities</option>
             <option *ngFor="let city of cities" [ngValue]="city._id">
               {{ city.name }}
@@ -192,11 +165,7 @@
             <i class="fas fa-map-marker-alt"></i>
             Taluka / Center
           </label>
-          <input
-            type="text"
-            class="filter-input"
-            placeholder="Enter taluka or center"
-            [(ngModel)]="taluka"
+          <input type="text" class="filter-input" placeholder="Enter taluka or center" [(ngModel)]="taluka"
             (input)="onTalukaChange()">
         </div>
 
@@ -206,7 +175,8 @@
             <i class="fas fa-list-ol"></i>
             Rows per Page
           </label>
-          <select id="rowsFilter" [ngModel]="itemsPerPage" (ngModelChange)="onPageSizeChange($event)" class="filter-select">
+          <select id="rowsFilter" [ngModel]="itemsPerPage" (ngModelChange)="onPageSizeChange($event)"
+            class="filter-select">
             <option [ngValue]="5">5</option>
             <option [ngValue]="10">10</option>
             <option [ngValue]="25">25</option>
@@ -229,76 +199,79 @@
     <p>Loading time logs...</p>
   </div>
 
-    <!-- Time Entries Table -->
-    <div *ngIf="!loading" class="timelog-table">
-      <table>
-        <thead>
-          <tr>
-            <th>Employee Name</th>
-            <th>Date</th>
-            <th>Check In Time</th>
-            <th>Check Out Time</th>
-            <th>Total Hours</th>
-            <th>Status</th>
-            <th>Check In Location</th>
-            <th>Check Out Location</th>
-            <!-- <th>Session</th> -->
-            <!-- <th>Actions</th> -->
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let entry of filteredTimeEntries">
-            <td>{{ getEmployeeName(entry) }}</td>
-            <td>{{ formatDate(entry.date) }}</td>
-            <td>{{ formatTime(entry.checkInTime) }}</td>
-            <td>
-              <span *ngIf="isCheckedOut(entry); else notCheckedOut">
-                {{ formatTime(entry.checkOutTime) }}
+  <!-- Time Entries Table -->
+  <div *ngIf="!loading" class="timelog-table">
+    <table>
+      <thead>
+        <tr>
+          <th>Employee Name</th>
+          <th>Date</th>
+          <th>Check In Time</th>
+          <th>Check Out Time</th>
+          <th>Total Hours</th>
+          <th>Status</th>
+          <th>Check In Location</th>
+          <th>Check Out Location</th>
+          <!-- <th>Session</th> -->
+          <th *ngIf="canEdit()">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let entry of filteredTimeEntries">
+          <td>{{ getEmployeeName(entry) }}</td>
+          <td>{{ formatDate(entry.date) }}</td>
+          <td>{{ formatTime(entry.checkInTime) }}</td>
+          <td>
+            <span *ngIf="isCheckedOut(entry); else notCheckedOut">
+              {{ formatTime(entry.checkOutTime) }}
+            </span>
+            <ng-template #notCheckedOut>
+              <span class="not-checked-out">Not checked out</span>
+            </ng-template>
+          </td>
+          <td>{{ getTotalHours(entry) }}</td>
+          <td>
+            <span class="status-badge" [ngClass]="getStatusClass(entry.status)">
+              {{ getStatusText(entry.status) }}
+            </span>
+          </td>
+          <td>
+            <div class="location-cell">
+              <span *ngIf="hasValidCoordinates(entry.checkInLatitude, entry.checkInLongitude); else noLocationCheckIn">
+                <i class="fas fa-map-marker-alt location-icon"
+                  (click)="openMapWithCoordinates(entry.checkInLatitude, entry.checkInLongitude, 'checkin')"
+                  title="Click to view on map">
+                </i>
+                <span class="coordinates">{{ entry.checkInLatitude | number:'1.4-4' }}, {{ entry.checkInLongitude |
+                  number:'1.4-4' }}</span>
               </span>
-              <ng-template #notCheckedOut>
-                <span class="not-checked-out">Not checked out</span>
+              <ng-template #noLocationCheckIn>
+                <span class="no-location">No location data</span>
               </ng-template>
-            </td>
-            <td>{{ getTotalHours(entry) }}</td>
-            <td>
-              <span class="status-badge" [ngClass]="getStatusClass(entry.status)">
-                {{ getStatusText(entry.status) }}
+            </div>
+          </td>
+          <td>
+            <div class="location-cell">
+              <span
+                *ngIf="hasValidCoordinates(entry.checkOutLatitude, entry.checkOutLongitude); else noLocationCheckOut">
+                <i class="fas fa-map-marker-alt location-icon"
+                  (click)="openMapWithCoordinates(entry.checkOutLatitude, entry.checkOutLongitude, 'checkout')"
+                  title="Click to view on map">
+                </i>
+                <span class="coordinates">{{ entry.checkOutLatitude | number:'1.4-4' }}, {{ entry.checkOutLongitude |
+                  number:'1.4-4' }}</span>
               </span>
-            </td>
-            <td>
-              <div class="location-cell">
-                <span *ngIf="hasValidCoordinates(entry.checkInLatitude, entry.checkInLongitude); else noLocationCheckIn">
-                  <i class="fas fa-map-marker-alt location-icon"
-                     (click)="openMapWithCoordinates(entry.checkInLatitude, entry.checkInLongitude, 'checkin')"
-                     title="Click to view on map">
-                  </i>
-                  <span class="coordinates">{{ entry.checkInLatitude | number:'1.4-4' }}, {{ entry.checkInLongitude | number:'1.4-4' }}</span>
-                </span>
-                <ng-template #noLocationCheckIn>
-                  <span class="no-location">No location data</span>
-                </ng-template>
-              </div>
-            </td>
-            <td>
-              <div class="location-cell">
-                <span *ngIf="hasValidCoordinates(entry.checkOutLatitude, entry.checkOutLongitude); else noLocationCheckOut">
-                  <i class="fas fa-map-marker-alt location-icon"
-                     (click)="openMapWithCoordinates(entry.checkOutLatitude, entry.checkOutLongitude, 'checkout')"
-                     title="Click to view on map">
-                  </i>
-                  <span class="coordinates">{{ entry.checkOutLatitude | number:'1.4-4' }}, {{ entry.checkOutLongitude | number:'1.4-4' }}</span>
-                </span>
-                <ng-template #noLocationCheckOut>
-                  <span class="no-location">No location data</span>
-                </ng-template>
-              </div>
-            </td>
-            <!-- <td>{{ entry.sessionNumber }}</td> -->
-            <!-- <td class="actions">
-              <button class="btn-icon" title="Edit" [disabled]="!isCheckedOut(entry)">
-                <i class="fas fa-edit"></i>
-              </button>
-            </td> -->
+              <ng-template #noLocationCheckOut>
+                <span class="no-location">No location data</span>
+              </ng-template>
+            </div>
+          </td>
+          <!-- <td>{{ entry.sessionNumber }}</td> -->
+          <td class="actions" *ngIf="canEdit()">
+            <button class="btn-icon" title="Edit" (click)="openEditTimeLogModal(entry)">
+              <i class="fas fa-edit"></i>
+            </button>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -314,39 +287,22 @@
   <!-- Pagination and Rows Selection -->
   <div *ngIf="!loading && totalPages > 1" class="pagination-container">
     <div class="pagination">
-      <button
-        class="btn-page"
-        [disabled]="currentPage === 1"
-        (click)="onPageChange(1)"
-        title="First">
+      <button class="btn-page" [disabled]="currentPage === 1" (click)="onPageChange(1)" title="First">
         <i class="fas fa-angle-double-left"></i>
       </button>
-      <button
-        class="btn-page"
-        [disabled]="currentPage === 1"
-        (click)="onPageChange(currentPage - 1)">
+      <button class="btn-page" [disabled]="currentPage === 1" (click)="onPageChange(currentPage - 1)">
         <i class="fas fa-chevron-left"></i>
       </button>
 
-      <button
-        *ngFor="let page of pages"
-        class="btn-page"
-        [class.active]="page === currentPage"
+      <button *ngFor="let page of pages" class="btn-page" [class.active]="page === currentPage"
         (click)="onPageChange(page)">
         {{ page }}
       </button>
 
-      <button
-        class="btn-page"
-        [disabled]="currentPage === totalPages"
-        (click)="onPageChange(currentPage + 1)">
+      <button class="btn-page" [disabled]="currentPage === totalPages" (click)="onPageChange(currentPage + 1)">
         <i class="fas fa-chevron-right"></i>
       </button>
-      <button
-        class="btn-page"
-        [disabled]="currentPage === totalPages"
-        (click)="onPageChange(totalPages)"
-        title="Last">
+      <button class="btn-page" [disabled]="currentPage === totalPages" (click)="onPageChange(totalPages)" title="Last">
         <i class="fas fa-angle-double-right"></i>
       </button>
     </div>
@@ -363,19 +319,12 @@
   </div>
 
   <!-- Attendance Modal -->
-  <app-attendance-modal
-    [isOpen]="showAttendanceModal"
-    [action]="attendanceAction"
-    (closeModal)="closeAttendanceModal()"
+  <app-attendance-modal [isOpen]="showAttendanceModal" [action]="attendanceAction" (closeModal)="closeAttendanceModal()"
     (actionCompleted)="onAttendanceCompleted($event)">
   </app-attendance-modal>
 
   <!-- Admin Time Log Modal -->
-  <app-admin-timelog-modal
-    [isOpen]="showAdminModal"
-    [mode]="adminModalMode"
-    [editData]="selectedTimeLog"
-    (closeModal)="closeAdminModal()"
-    (actionCompleted)="onAdminActionCompleted($event)">
+  <app-admin-timelog-modal [isOpen]="showAdminModal" [mode]="adminModalMode" [editData]="selectedTimeLog"
+    (closeModal)="closeAdminModal()" (actionCompleted)="onAdminActionCompleted($event)">
   </app-admin-timelog-modal>
 </div>

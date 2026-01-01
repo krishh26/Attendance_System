@@ -167,18 +167,23 @@ export class TimelogService {
   }
 
   // Format time for display as "h.mm am/pm" format (e.g., "1.03 am")
-  // Note: API already returns time in IST, so extract time components directly from string
+  // The API returns UTC times from MongoDB, so we need to convert UTC to IST (UTC+5:30)
   formatTimeForDisplay(timeString: string | undefined | null): string {
     if (!timeString) return '';
     
     try {
-      // Extract hours and minutes directly from ISO string (format: YYYY-MM-DDTHH:mm:ss.sssZ)
-      // Since API already returns IST time, we parse the string directly
-      const timeMatch = timeString.match(/T(\d{2}):(\d{2})/);
-      if (!timeMatch) return '';
+      // Parse the ISO string as UTC time
+      const date = new Date(timeString);
+      if (isNaN(date.getTime())) return '';
       
-      let hours = parseInt(timeMatch[1], 10);
-      const minutes = parseInt(timeMatch[2], 10);
+      // Convert UTC to IST (UTC+5:30)
+      // IST is 5 hours and 30 minutes ahead of UTC
+      const istOffset = 5.5 * 60 * 60 * 1000; // 5.5 hours in milliseconds
+      const istDate = new Date(date.getTime() + istOffset);
+      
+      // Get hours and minutes in IST
+      let hours = istDate.getUTCHours();
+      const minutes = istDate.getUTCMinutes();
       
       // Determine am/pm: 12-23 is pm, 0-11 is am
       const isPM = hours >= 12;

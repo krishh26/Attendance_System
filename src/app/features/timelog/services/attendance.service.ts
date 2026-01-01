@@ -64,7 +64,7 @@ export interface TodayAttendanceResponse {
   providedIn: 'root'
 })
 export class AttendanceService {
-  constructor(private apiService: ApiService) {}
+  constructor(private apiService: ApiService) { }
 
   // Check-in for the day
   checkIn(request: CheckInRequest): Observable<AttendanceResponse> {
@@ -90,8 +90,18 @@ export class AttendanceService {
   getCurrentStatus(): Observable<{ hasActiveSession: boolean; lastSession?: any }> {
     return new Observable(observer => {
       this.getTodayAttendance().subscribe({
-        next: (response) => {
-          const activeSession = response.data.find(session => !session.isCheckedOut);
+        next: (response: any) => {
+          // Handle potential response structure variations
+          const requestData = Array.isArray(response.data) ? response.data : response.data?.data || [];
+
+          if (!Array.isArray(requestData)) {
+            console.error('AttendanceService: Expected array in response data', response);
+            observer.next({ hasActiveSession: false });
+            observer.complete();
+            return;
+          }
+
+          const activeSession = requestData.find((session: any) => !session.isCheckedOut);
           observer.next({
             hasActiveSession: !!activeSession,
             lastSession: activeSession

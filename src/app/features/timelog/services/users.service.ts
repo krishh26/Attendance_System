@@ -35,7 +35,7 @@ export interface UsersResponse {
   providedIn: 'root'
 })
 export class UsersService {
-  constructor(private apiService: ApiService) {}
+  constructor(private apiService: ApiService) { }
 
   // Get all users for admin selection
   getAllUsers(params?: {
@@ -61,8 +61,10 @@ export class UsersService {
   getAllUsersForDropdown(): Observable<User[]> {
     return new Observable(observer => {
       this.getAllUsers({ limit: 1000 }).subscribe({
-        next: (response) => {
-          observer.next(response.data);
+        next: (response: any) => {
+          // Handle both array and paginated response structures
+          const users = Array.isArray(response.data) ? response.data : response.data?.data;
+          observer.next(users || []);
           observer.complete();
         },
         error: (error) => {

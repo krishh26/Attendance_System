@@ -9,6 +9,8 @@ import { AdminTimeLogModalComponent } from './admin-timelog-modal/admin-timelog-
 import { StateService, State } from '../../admin/user-list/services/state.service';
 import { CityService, City } from '../../admin/user-list/services/city.service';
 import * as XLSX from 'xlsx';
+import { AuthService } from '../../auth/services/auth.service';
+import { PermissionService } from '../../../shared/services/permission.service';
 
 @Component({
   selector: 'app-timelog-list',
@@ -67,7 +69,7 @@ export class TimelogListComponent implements OnInit, OnDestroy {
   showAdminModal = false;
   adminModalMode: 'add' | 'edit' = 'add';
   selectedTimeLog: any = null;
-  isAdmin = true; // This should be determined by user role in real implementation
+  isAdmin = false;
 
   // RxJS subjects for cleanup
   private destroy$ = new Subject<void>();
@@ -78,13 +80,16 @@ export class TimelogListComponent implements OnInit, OnDestroy {
     private timelogService: TimelogService,
     private attendanceService: AttendanceService,
     private stateService: StateService,
-    private cityService: CityService
+    private cityService: CityService,
+    private authService: AuthService,
+    private permissionService: PermissionService
   ) {
     // Set default date to today
     this.selectedDate = this.timelogService.getTodayDate();
   }
 
   ngOnInit(): void {
+    this.isAdmin = this.authService.isCurrentUserSuperAdmin();
     this.setupSearch();
     this.setupFilters();
     this.loadStates();
@@ -334,25 +339,25 @@ export class TimelogListComponent implements OnInit, OnDestroy {
     if (totalHours <= 0) {
       return '0 min';
     }
-    
+
     const hours = Math.floor(totalHours);
     const minutes = Math.round((totalHours - hours) * 60);
-    
+
     const parts: string[] = [];
-    
+
     if (hours > 0) {
       parts.push(`${hours} ${hours === 1 ? 'hour' : 'hours'}`);
     }
-    
+
     if (minutes > 0) {
       parts.push(`${minutes} min`);
     }
-    
+
     // If less than 1 hour, show only minutes
     if (hours === 0 && minutes === 0) {
       return '0 min';
     }
-    
+
     return parts.join(' ');
   }
 
@@ -361,9 +366,9 @@ export class TimelogListComponent implements OnInit, OnDestroy {
     if (!entry.isCheckedOut || !entry.checkOutTime) {
       return '--';
     }
-    
+
     let totalHours: number;
-    
+
     // Use backend calculated totalHours if available
     if (entry.totalHours !== undefined && entry.totalHours !== null) {
       totalHours = entry.totalHours;
@@ -372,20 +377,20 @@ export class TimelogListComponent implements OnInit, OnDestroy {
       try {
         const checkIn = new Date(entry.checkInTime);
         const checkOut = new Date(entry.checkOutTime);
-        
+
         // Validate dates
         if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) {
           return '--';
         }
-        
+
         // Calculate difference in milliseconds
         const diffMs = checkOut.getTime() - checkIn.getTime();
-        
+
         // Ensure positive value
         if (diffMs < 0) {
           return '--';
         }
-        
+
         // Convert to hours
         totalHours = diffMs / (1000 * 60 * 60);
       } catch (error) {
@@ -393,7 +398,7 @@ export class TimelogListComponent implements OnInit, OnDestroy {
         return '--';
       }
     }
-    
+
     // Format as "X hour(s) Y min"
     return this.formatHoursAndMinutes(totalHours);
   }
@@ -410,8 +415,8 @@ export class TimelogListComponent implements OnInit, OnDestroy {
   // Check if coordinates are valid
   hasValidCoordinates(latitude: number, longitude: number): boolean {
     return latitude != null && longitude != null &&
-           !isNaN(latitude) && !isNaN(longitude) &&
-           latitude !== 0 && longitude !== 0;
+      !isNaN(latitude) && !isNaN(longitude) &&
+      latitude !== 0 && longitude !== 0;
   }
 
   // Set date to today
@@ -436,11 +441,11 @@ export class TimelogListComponent implements OnInit, OnDestroy {
   // Check if any filters are active
   hasActiveFilters(): boolean {
     return this.searchTerm.trim() !== '' ||
-           this.selectedStatus !== 'all' ||
-           this.selectedDate !== this.timelogService.getTodayDate() ||
-           !!this.selectedStateId ||
-           !!this.selectedCityId ||
-           this.taluka.trim() !== '';
+      this.selectedStatus !== 'all' ||
+      this.selectedDate !== this.timelogService.getTodayDate() ||
+      !!this.selectedStateId ||
+      !!this.selectedCityId ||
+      this.taluka.trim() !== '';
   }
 
   // Handle page size change
@@ -572,6 +577,27 @@ export class TimelogListComponent implements OnInit, OnDestroy {
     console.log('Admin action completed:', response);
     // Refresh the data to show updated time logs
     this.loadTimeLogs();
+  }
+
+  // Permission checking methods
+  canCreate(): boolean {
+    return this.permissionService.hasPermission('attendance', 'create') || 
+           this.permissionService.hasPermission('timelog', 'create');
+  }
+
+  canEdit(): boolean {
+    return this.permissionService.hasPermission('attendance', 'update') || 
+           this.permissionService.hasPermission('timelog', 'update');
+  }
+
+  canDelete(): boolean {
+    return this.permissionService.hasPermission('attendance', 'delete') || 
+           this.permissionService.hasPermission('timelog', 'delete');
+  }
+
+  canView(): boolean {
+    return this.permissionService.hasPermission('attendance', 'read') || 
+           this.permissionService.hasPermission('timelog', 'read');
   }
 
   // Get appropriate button text and action for admin
