@@ -220,10 +220,15 @@
         <tr *ngFor="let entry of filteredTimeEntries">
           <td>{{ getEmployeeName(entry) }}</td>
           <td>{{ formatDate(entry.date) }}</td>
-          <td>{{ formatTime(entry.checkInTime) }}</td>
+          <td>
+            {{ entry.checkInTime | date:'h:mm a':'UTC' }}
+            <!-- {{ formatTime(entry.checkInTime) }} -->
+
+          </td>
           <td>
             <span *ngIf="isCheckedOut(entry); else notCheckedOut">
-              {{ formatTime(entry.checkOutTime) }}
+              <!-- {{ formatTime(entry.checkOutTime) }} -->
+               {{ entry.checkOutTime | date:'h:mm a':'UTC'}}
             </span>
             <ng-template #notCheckedOut>
               <span class="not-checked-out">Not checked out</span>
