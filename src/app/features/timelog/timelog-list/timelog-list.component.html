@@ -52,6 +52,10 @@
       <button class="btn-export" (click)="exportToExcel()" title="Export to Excel">
         <i class="fas fa-file-excel"></i>
       </button>
+      <button class="btn-tour" (click)="navigateToTourList()" title="View Tours" style="background-color: #28a745;">
+        <i class="fas fa-map-marked-alt"></i>
+        <span>Tour</span>
+      </button>
       <button *ngIf="canCreate()" class="btn-add" (click)="onAdminButtonClick()" [title]="getAdminButtonText()"
         style="background-color: #007bff;">
         <i [class]="getAdminButtonIcon()"></i>

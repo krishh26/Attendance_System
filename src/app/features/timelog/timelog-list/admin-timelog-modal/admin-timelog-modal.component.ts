@@ -1,5 +1,5 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnChanges } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UsersService, User } from '../../services/users.service';
 import { AttendanceService, AdminCreateAttendanceRequest, AdminUpdateAttendanceRequest } from '../../services/attendance.service';
@@ -51,10 +51,14 @@ export class AdminTimeLogModalComponent implements OnInit, OnChanges {
     checkOutLongitude: undefined
   };
 
+  private datePipe: DatePipe;
+
   constructor(
     private usersService: UsersService,
     private attendanceService: AttendanceService
-  ) { }
+  ) {
+    this.datePipe = new DatePipe('en-US');
+  }
 
   ngOnInit(): void {
     this.loadUsers();
@@ -118,15 +122,14 @@ export class AdminTimeLogModalComponent implements OnInit, OnChanges {
       }
 
       // Helper function to extract time in HH:MM format from ISO datetime string
-      // This matches the logic in formatTimeForDisplay - convert UTC to IST
-      // The API returns UTC times from MongoDB, so we need to convert UTC to IST (UTC+5:30)
-      // Example: If stored time is 11:55 IST (06:25 UTC), we convert 06:25 UTC to 11:55 IST
+      // The listing uses: {{ entry.checkInTime | date:'h:mm a':'UTC' }}
+      // We use the same DatePipe to format it, then parse the formatted string to extract hours:minutes
       const extractTime = (timeString: string | Date | undefined): string => {
         if (!timeString) return '';
+        
         try {
-          let date: Date;
-          
           // Convert to Date object
+          let date: Date;
           if (typeof timeString === 'string') {
             date = new Date(timeString);
           } else if (timeString instanceof Date) {
@@ -140,15 +143,38 @@ export class AdminTimeLogModalComponent implements OnInit, OnChanges {
             return '';
           }
           
-          // Convert UTC to IST (UTC+5:30)
-          // IST is 5 hours and 30 minutes ahead of UTC
-          const istOffset = 5.5 * 60 * 60 * 1000; // 5.5 hours in milliseconds
-          const istDate = new Date(date.getTime() + istOffset);
+          // Use DatePipe to format exactly as the listing does: 'h:mm a' with 'UTC' timezone
+          // This ensures we get the exact same output as the listing
+          const formattedTime = this.datePipe.transform(date, 'h:mm a', 'UTC');
           
-          // Get hours and minutes in IST
+          if (!formattedTime) {
+            return '';
+          }
+          
+          // Parse the formatted time (e.g., "6:47 PM") to extract hours and minutes
+          // Convert to 24-hour format for HTML time input
+          const timeMatch = formattedTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+          if (timeMatch) {
+            let hours = parseInt(timeMatch[1], 10);
+            const minutes = parseInt(timeMatch[2], 10);
+            const period = timeMatch[3].toUpperCase();
+            
+            // Convert 12-hour to 24-hour format
+            if (period === 'PM' && hours !== 12) {
+              hours += 12;
+            } else if (period === 'AM' && hours === 12) {
+              hours = 0;
+            }
+            
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+          }
+          
+          // Fallback: If parsing fails, use UTC to IST conversion
+          const istOffset = 5.5 * 60 * 60 * 1000;
+          const istTimestamp = date.getTime() + istOffset;
+          const istDate = new Date(istTimestamp);
           const hours = istDate.getUTCHours();
           const minutes = istDate.getUTCMinutes();
-          
           return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
         } catch (error) {
           console.error('Error extracting time:', error);

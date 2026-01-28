@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
 import { TimelogService, TimeLogEntry, TimeLogResponse, TimeLogParams } from '../services/timelog.service';
 import { AttendanceService } from '../services/attendance.service';
@@ -82,7 +83,8 @@ export class TimelogListComponent implements OnInit, OnDestroy {
     private stateService: StateService,
     private cityService: CityService,
     private authService: AuthService,
-    private permissionService: PermissionService
+    private permissionService: PermissionService,
+    private router: Router
   ) {
     // Set default date to today
     this.selectedDate = this.timelogService.getTodayDate();
@@ -588,6 +590,11 @@ export class TimelogListComponent implements OnInit, OnDestroy {
   canEdit(): boolean {
     return this.permissionService.hasPermission('attendance', 'update') || 
            this.permissionService.hasPermission('timelog', 'update');
+  }
+
+  // Navigate to tour listing page
+  navigateToTourList(): void {
+    this.router.navigate(['/admin/tour/list']);
   }
 
   canDelete(): boolean {

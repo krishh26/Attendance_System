@@ -137,6 +137,36 @@
       }
     }
 
+    .btn-tour {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.875rem;
+      font-weight: 500;
+
+      &:hover {
+        background-color: #218838;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      }
+
+      i {
+        font-size: 0.875rem;
+      }
+
+      span {
+        font-size: 0.875rem;
+      }
+    }
+
     .btn-add {
       background-color: #007bff;
       color: white;
