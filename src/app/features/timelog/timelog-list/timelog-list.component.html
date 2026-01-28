@@ -240,8 +240,8 @@
           </td>
           <td>{{ getTotalHours(entry) }}</td>
           <td>
-            <span class="status-badge" [ngClass]="getStatusClass(entry.status)">
-              {{ getStatusText(entry.status) }}
+            <span class="status-badge" [ngClass]="getStatusClassForEntry(entry)">
+              {{ getStatusTextForEntry(entry) }}
             </span>
           </td>
           <td>

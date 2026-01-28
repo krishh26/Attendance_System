@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
@@ -18,7 +18,8 @@ import { PermissionService } from '../../../shared/services/permission.service';
   templateUrl: './timelog-list.component.html',
   styleUrls: ['./timelog-list.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, AttendanceModalComponent, AdminTimeLogModalComponent]
+  imports: [CommonModule, FormsModule, AttendanceModalComponent, AdminTimeLogModalComponent],
+  providers: [DatePipe]
 })
 export class TimelogListComponent implements OnInit, OnDestroy {
   // Make Math available in template
@@ -84,7 +85,8 @@ export class TimelogListComponent implements OnInit, OnDestroy {
     private cityService: CityService,
     private authService: AuthService,
     private permissionService: PermissionService,
-    private router: Router
+    private router: Router,
+    private datePipe: DatePipe
   ) {
     // Set default date to today
     this.selectedDate = this.timelogService.getTodayDate();
@@ -170,9 +172,25 @@ export class TimelogListComponent implements OnInit, OnDestroy {
   // Update summary statistics based on current data
   private updateSummaryStats(): void {
     const total = this.timeEntries.length;
-    const present = this.timeEntries.filter(entry => entry.status.toLowerCase() === 'present').length;
-    const late = this.timeEntries.filter(entry => entry.status.toLowerCase() === 'late').length;
-    const absent = this.timeEntries.filter(entry => entry.status.toLowerCase() === 'absent').length;
+
+    let present = 0;
+    let late = 0;
+
+    // Derive status based on check-in time (IST 10:30 AM cutoff)
+    for (const entry of this.timeEntries) {
+      const derivedStatus = this.getDerivedStatus(entry).toLowerCase();
+      if (derivedStatus === 'present') {
+        present++;
+      } else if (derivedStatus === 'late') {
+        late++;
+      }
+    }
+
+    // Absent = total - (present + late)
+    let absent = total - present - late;
+    if (absent < 0) {
+      absent = 0;
+    }
 
     this.summaryStats = {
       totalEmployees: total,
@@ -302,11 +320,61 @@ export class TimelogListComponent implements OnInit, OnDestroy {
     // Apply status filter (client-side since it's already loaded)
     if (this.selectedStatus !== 'all') {
       filtered = filtered.filter(entry =>
-        entry.status.toLowerCase() === this.selectedStatus.toLowerCase()
+        this.getDerivedStatus(entry).toLowerCase() === this.selectedStatus.toLowerCase()
       );
     }
 
     return filtered;
+  }
+
+  // Compute derived status based on the SAME time that is shown in the list.
+  // We use DatePipe with 'UTC' timezone, exactly like the template:
+  // {{ entry.checkInTime | date:'h:mm a':'UTC' }}
+  //
+  // Rule:
+  // - Late  => check-in AFTER 10:30 AM (displayed time)
+  // - Present => check-in at or BEFORE 10:30 AM
+  // - Absent => no check-in or explicit absent from backend
+  getDerivedStatus(entry: TimeLogEntry): string {
+    const baseStatus = (entry.status || '').toLowerCase();
+
+    // Explicit absent from backend always wins
+    if (baseStatus === 'absent') {
+      return 'absent';
+    }
+
+    // If there is no check-in time, treat as absent for counting/filtering
+    if (!entry.checkInTime) {
+      return 'absent';
+    }
+
+    try {
+      // Format exactly as listing does, but get 24h HH:mm for easier parsing
+      const formatted = this.datePipe.transform(entry.checkInTime, 'HH:mm', 'UTC');
+      if (!formatted) {
+        return entry.status;
+      }
+
+      const [hStr, mStr] = formatted.split(':');
+      const hours = parseInt(hStr, 10);
+      const minutes = parseInt(mStr, 10);
+      if (isNaN(hours) || isNaN(minutes)) {
+        return entry.status;
+      }
+
+      const totalMinutes = hours * 60 + minutes;
+
+      // 10:30 AM cutoff in minutes (same "display" timezone as listing)
+      const cutoffMinutes = 10 * 60 + 30;
+
+      if (totalMinutes > cutoffMinutes) {
+        return 'late';
+      }
+
+      return 'present';
+    } catch {
+      return entry.status;
+    }
   }
 
   // Utility methods for display
@@ -316,6 +384,15 @@ export class TimelogListComponent implements OnInit, OnDestroy {
 
   getStatusText(status: string): string {
     return this.timelogService.getStatusText(status);
+  }
+
+  // Status helpers that use the derived status (used in template/export)
+  getStatusClassForEntry(entry: TimeLogEntry): string {
+    return this.timelogService.getStatusClass(this.getDerivedStatus(entry));
+  }
+
+  getStatusTextForEntry(entry: TimeLogEntry): string {
+    return this.timelogService.getStatusText(this.getDerivedStatus(entry));
   }
 
   formatDate(dateString: string): string {
@@ -632,7 +709,7 @@ export class TimelogListComponent implements OnInit, OnDestroy {
         'Check In Time': entry.checkInTime ? this.formatTimeForExport(entry.checkInTime) : 'Not Checked In',
         'Check Out Time': entry.checkOutTime ? this.formatTimeForExport(entry.checkOutTime) : 'Not Checked Out',
         'Total Hours': entry.totalHours ? this.formatHoursAndMinutes(entry.totalHours) : '0 min',
-        'Status': this.getStatusText(entry.status),
+        'Status': this.getStatusTextForEntry(entry),
         'Session Number': entry.sessionNumber || 1,
         'Check In Location': this.formatLocation(entry.checkInLatitude, entry.checkInLongitude),
         'Check Out Location': this.formatLocation(entry.checkOutLatitude, entry.checkOutLongitude),

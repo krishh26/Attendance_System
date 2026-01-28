@@ -107,6 +107,58 @@ export class AdminTimeLogModalComponent implements OnInit, OnChanges {
     this.formData.checkOutTime = '17:00';
   }
 
+  /**
+   * Adjusts a HH:mm time string before sending to backend so that
+   * the time shown in the listing (which uses the Angular date pipe
+   * with 'UTC') matches exactly what the admin sets in this modal.
+   *
+   * Backend does:
+   *   storedTime = parseDateTimeToIST(date + 'T' + timeString)  // treats timeString as IST
+   * Listing does:
+   *   {{ storedTime | date:'h:mm a':'UTC' }}                    // treats storedTime as UTC
+   *
+   * To make listingTime == modalTime, we need:
+   *   listingTime (UTC) = modalTime
+   *   storedTime (UTC)   = IST(timeString) = timeString - 5h30
+   *   => timeString we send = modalTime + 5h30
+   */
+  private adjustTimeForBackend(time: string | undefined | null): string | undefined {
+    if (!time) {
+      return undefined;
+    }
+
+    try {
+      const parts = time.split(':');
+      if (parts.length < 2) {
+        return time;
+      }
+
+      const hours = parseInt(parts[0], 10);
+      const minutes = parseInt(parts[1], 10);
+
+      if (isNaN(hours) || isNaN(minutes)) {
+        return time;
+      }
+
+      // Convert current modal time to total minutes
+      const minutesInDay = 24 * 60;
+      let totalMinutes = (hours * 60 + minutes) % minutesInDay;
+
+      // Add 5 hours 30 minutes so that after backend IST parsing
+      // and listing UTC display, the visible time matches modal time.
+      const offsetMinutes = 5 * 60 + 30; // 330 minutes
+      totalMinutes = (totalMinutes + offsetMinutes) % minutesInDay;
+
+      const adjHours = Math.floor(totalMinutes / 60);
+      const adjMinutes = totalMinutes % 60;
+
+      return `${String(adjHours).padStart(2, '0')}:${String(adjMinutes).padStart(2, '0')}`;
+    } catch (err) {
+      console.error('adjustTimeForBackend error', err, time);
+      return time || undefined;
+    }
+  }
+
   populateFormForEdit(): void {
     if (this.editData) {
       // Fix date handling to avoid timezone issues
@@ -220,14 +272,19 @@ export class AdminTimeLogModalComponent implements OnInit, OnChanges {
         return;
       }
 
+      // Apply -1 hour adjustment so that listing shows exactly
+      // the same time admin sets in this modal.
+      const adjustedCheckIn = this.adjustTimeForBackend(this.formData.checkInTime);
+      const adjustedCheckOut = this.adjustTimeForBackend(this.formData.checkOutTime);
+
       // Make real API call instead of simulation
       let result;
       if (this.mode === 'add') {
         const request: AdminCreateAttendanceRequest = {
           userId: this.formData.userId,
           date: this.formData.date,
-          checkInTime: this.formData.checkInTime,
-          checkOutTime: this.formData.checkOutTime || undefined,
+          checkInTime: adjustedCheckIn || this.formData.checkInTime,
+          checkOutTime: adjustedCheckOut || this.formData.checkOutTime || undefined,
           status: this.formData.status,
           notes: this.formData.notes || undefined,
           sessionNumber: this.formData.sessionNumber,
@@ -241,8 +298,8 @@ export class AdminTimeLogModalComponent implements OnInit, OnChanges {
         const request: AdminUpdateAttendanceRequest = {
           userId: this.formData.userId,
           date: this.formData.date,
-          checkInTime: this.formData.checkInTime,
-          checkOutTime: this.formData.checkOutTime || undefined,
+          checkInTime: adjustedCheckIn || this.formData.checkInTime,
+          checkOutTime: adjustedCheckOut || this.formData.checkOutTime || undefined,
           status: this.formData.status,
           notes: this.formData.notes || undefined,
           sessionNumber: this.formData.sessionNumber,
