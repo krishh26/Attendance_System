@@ -211,10 +211,8 @@
             formControlName="state"
             [class.invalid]="isFieldInvalid('state')"
             (change)="onStateChange()">
-            <option value="">Select a state</option>
-            <option *ngFor="let state of states" [value]="state._id">
-              {{ state.name }}
-            </option>
+            <option value="">Select state</option>
+            <option *ngFor="let state of stateOptions" [value]="state">{{ state }}</option>
           </select>
           <div class="error-text" *ngIf="isFieldInvalid('state')">
             {{ getFieldError('state') }}
@@ -222,16 +220,14 @@
         </div>
 
         <div class="form-group">
-          <label for="city">City</label>
+          <label for="city">City / District</label>
           <select
             id="city"
             formControlName="city"
             [class.invalid]="isFieldInvalid('city')"
-            [disabled]="!cities.length">
-            <option value="">Select a city</option>
-            <option *ngFor="let city of cities" [value]="city._id">
-              {{ city.name }}
-            </option>
+            (change)="onCityChange()">
+            <option value="">Select city / district</option>
+            <option *ngFor="let d of districts" [value]="d">{{ d }}</option>
           </select>
           <div class="error-text" *ngIf="isFieldInvalid('city')">
             {{ getFieldError('city') }}
@@ -241,13 +237,15 @@
 
       <div class="form-row">
         <div class="form-group">
-          <label for="center">Taluka </label>
-          <input
+          <label for="center">Taluka</label>
+          <select
             id="center"
-            type="text"
             formControlName="center"
             [class.invalid]="isFieldInvalid('center')"
-            placeholder="Enter center">
+            [disabled]="!talukas.length">
+            <option value="">Select taluka</option>
+            <option *ngFor="let t of talukas" [value]="t">{{ t }}</option>
+          </select>
           <div class="error-text" *ngIf="isFieldInvalid('center')">
             {{ getFieldError('center') }}
           </div>

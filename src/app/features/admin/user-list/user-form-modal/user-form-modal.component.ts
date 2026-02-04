@@ -8,6 +8,7 @@ import { UserService, User, CreateUserRequest, UpdateUserRequest } from '../user
 import { RoleService, Role } from '../role.service';
 import { StateService, State } from '../services/state.service';
 import { CityService, City } from '../services/city.service';
+import { STATE_MAHARASHTRA, DISTRICTS, getTalukasForDistrict } from '../../../../shared/constants/location.constants';
 
 @Component({
   selector: 'app-user-form-modal',
@@ -29,7 +30,11 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
   cities: City[] = [];
   reportingStates: State[] = [];
   reportingCities: City[] = [];
-  allCities: City[] = []; // Store all cities for reporting city selection
+  allCities: City[] = [];
+  // Static location for main state/city/center (Maharashtra)
+  readonly stateOptions = [STATE_MAHARASHTRA];
+  readonly districts = DISTRICTS;
+  talukas: string[] = [];
   loading = false;
   error: string | null = null;
   isEditMode = false;
@@ -77,11 +82,11 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
     } else if (changes['user'] && !this.user) {
       this.isEditMode = false;
       this.userForm.reset();
-      // Reset password validation for add mode
       this.userForm.get('password')?.setValidators([Validators.required, Validators.minLength(6)]);
       this.userForm.get('password')?.updateValueAndValidity();
-      // Reset form arrays
+      this.talukas = [];
       this.userForm.patchValue({
+        state: STATE_MAHARASHTRA,
         reportingState: [],
         reportingCity: []
       });
@@ -237,13 +242,21 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
       .subscribe({
         next: (response: any) => {
           this.states = response.data.sort((a: any, b: any) => a.name.localeCompare(b.name));
-          this.reportingStates = [...this.states]; // Copy for reporting state selection
+          this.reportingStates = [...this.states];
         },
         error: (error: any) => {
           console.error('Error loading states:', error);
           this.error = 'Failed to load states';
         }
       });
+  }
+
+  onCityChange(): void {
+    const district = this.userForm.get('city')?.value;
+    this.talukas = district ? getTalukasForDistrict(district) : [];
+    if (!this.isEditMode) {
+      this.userForm.patchValue({ center: '' });
+    }
   }
 
   loadAllCities(): void {
@@ -283,45 +296,10 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
       });
   }
 
-  loadCitiesByState(stateId: string): void {
-    if (!stateId) {
-      this.cities = [];
-      if (!this.isEditMode) {
-        this.userForm.patchValue({ city: '' });
-      }
-      return;
-    }
-
-    this.cityService.getCitiesByState(stateId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (response: any) => {
-          this.cities = response.data.sort((a: any, b: any) => a.name.localeCompare(b.name));
-          // Only reset city selection when state changes in add mode
-          if (!this.isEditMode) {
-            this.userForm.patchValue({ city: '' });
-          } else if (this.user?.city) {
-            // In edit mode, find and set the city ID
-            const selectedCity = this.cities.find(city => city.name === this.user?.city);
-            if (selectedCity) {
-              this.userForm.patchValue({ city: selectedCity._id });
-            }
-          }
-        },
-        error: (error: any) => {
-          console.error('Error loading cities:', error);
-          this.error = 'Failed to load cities';
-        }
-      });
-  }
-
   onStateChange(): void {
-    const selectedStateId = this.userForm.get('state')?.value;
-    if (selectedStateId && typeof selectedStateId === 'string') {
-      this.loadCitiesByState(selectedStateId);
-    } else {
-      this.cities = [];
-      this.userForm.patchValue({ city: '' });
+    if (!this.userForm.get('state')?.value) {
+      this.userForm.patchValue({ city: '', center: '' });
+      this.talukas = [];
     }
   }
 
@@ -357,76 +335,35 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
         return reportingCityIds;
       };
 
-      // Find state ID by name
-      let stateId = '';
-      if (this.user?.state && this.states.length > 0) {
-        const selectedState = this.states.find(state => state.name === this.user?.state);
-        if (selectedState) {
-          stateId = selectedState._id;
-        }
-      }
+      // Main state/city/center use static Maharashtra data (names)
+      const stateName = this.user?.state || STATE_MAHARASHTRA;
+      const cityName = this.user?.city || '';
+      const centerName = this.user?.center || '';
+      this.talukas = cityName ? getTalukasForDistrict(cityName) : [];
 
-      // Set initial form values
       this.userForm.patchValue({
         firstname: this.user.firstname || '',
         lastname: this.user.lastname || '',
         email: this.user.email || '',
-        password: '', // Don't populate password for edit
+        password: '',
         role: roleId || '',
         mobilenumber: this.user.mobilenumber || '',
         addressline1: this.user.addressline1 || '',
         addressline2: this.user.addressline2 || '',
-        state: stateId,
-        center: this.user.center || '',
+        state: stateName,
+        city: cityName,
+        center: centerName,
         pincode: this.user.pincode || '',
         designation: this.user.designation || '',
         reportingState: reportingStateIds
       });
 
-      // Make password optional for edit mode
       this.userForm.get('password')?.clearValidators();
       this.userForm.get('password')?.updateValueAndValidity();
 
-      // Load cities for the selected state, then set city and reportingCity
-      if (stateId) {
-        this.loadCitiesByState(stateId);
-        // Wait for cities to load before setting city field
-        setTimeout(() => {
-          if (this.user?.city && this.cities.length > 0) {
-            const selectedCity = this.cities.find(city => city.name === this.user?.city);
-            if (selectedCity) {
-              this.userForm.patchValue({ city: selectedCity._id });
-            }
-          }
-          
-          // Set reporting cities after all cities are loaded
-          const reportingCityIds = populateReportingCities();
-          if (reportingCityIds.length > 0) {
-            this.userForm.patchValue({ reportingCity: reportingCityIds });
-          }
-        }, 300);
-      } else {
-        // If no state, still try to populate reporting cities if allCities is loaded
-        if (this.allCities.length > 0) {
-          const reportingCityIds = populateReportingCities();
-          if (reportingCityIds.length > 0) {
-            this.userForm.patchValue({ reportingCity: reportingCityIds });
-          }
-        } else {
-          // Wait for allCities to load
-          const checkInterval = setInterval(() => {
-            if (this.allCities.length > 0) {
-              clearInterval(checkInterval);
-              const reportingCityIds = populateReportingCities();
-              if (reportingCityIds.length > 0) {
-                this.userForm.patchValue({ reportingCity: reportingCityIds });
-              }
-            }
-          }, 200);
-          
-          // Clear interval after 5 seconds to avoid infinite loop
-          setTimeout(() => clearInterval(checkInterval), 5000);
-        }
+      const reportingCityIds = populateReportingCities();
+      if (reportingCityIds.length > 0) {
+        this.userForm.patchValue({ reportingCity: reportingCityIds });
       }
     }
   }
@@ -437,13 +374,8 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
       this.error = null;
 
       const formData = this.userForm.value;
-      
-      // Convert state and city IDs to names before sending to API
-      const selectedState = this.states.find(state => state._id === formData.state);
-      const selectedCity = this.cities.find(city => city._id === formData.city);
-      
-      // Convert reporting state/city IDs to names
-      // ng-select with bindValue returns array of IDs directly
+
+      // Main state/city/center are already names (Maharashtra, district, taluka)
       const reportingStateNames: string[] = [];
       if (formData.reportingState && Array.isArray(formData.reportingState) && formData.reportingState.length > 0) {
         formData.reportingState.forEach((stateId: string) => {
@@ -455,7 +387,7 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
           }
         });
       }
-      
+
       const reportingCityNames: string[] = [];
       if (formData.reportingCity && Array.isArray(formData.reportingCity) && formData.reportingCity.length > 0) {
         formData.reportingCity.forEach((cityId: string) => {
@@ -467,11 +399,12 @@ export class UserFormModalComponent implements OnInit, OnDestroy, OnChanges {
           }
         });
       }
-      
+
       const processedFormData = {
         ...formData,
-        state: selectedState ? selectedState.name : formData.state,
-        city: selectedCity ? selectedCity.name : formData.city,
+        state: formData.state,
+        city: formData.city,
+        center: formData.center,
         reportingState: reportingStateNames,
         reportingCity: reportingCityNames
       };

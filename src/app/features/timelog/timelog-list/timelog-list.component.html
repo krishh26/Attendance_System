@@ -135,7 +135,7 @@
           <input type="date" id="dateFilter" [(ngModel)]="selectedDate" (change)="onDateChange()" class="filter-input">
         </div>
 
-        <!-- State Filter -->
+        <!-- State Filter (static: Maharashtra only) -->
         <div class="filter-group">
           <label class="filter-label">
             <i class="fas fa-flag"></i>
@@ -143,34 +143,36 @@
           </label>
           <select class="filter-select" [(ngModel)]="selectedStateId" (ngModelChange)="onStateChange()">
             <option value="">All States</option>
-            <option *ngFor="let state of states" [ngValue]="state._id">
+            <option *ngFor="let state of stateOptions" [ngValue]="state.id">
               {{ state.name }}
             </option>
           </select>
         </div>
 
-        <!-- City Filter -->
+        <!-- City / District Filter -->
         <div class="filter-group">
           <label class="filter-label">
             <i class="fas fa-city"></i>
-            City
+            City / District
           </label>
-          <select class="filter-select" [(ngModel)]="selectedCityId" (ngModelChange)="onCityChange()">
+          <select class="filter-select" [(ngModel)]="selectedCityId" (ngModelChange)="onCityChange()"
+            [disabled]="!selectedStateId">
             <option value="">All Cities</option>
-            <option *ngFor="let city of cities" [ngValue]="city._id">
-              {{ city.name }}
-            </option>
+            <option *ngFor="let d of districts" [ngValue]="d">{{ d }}</option>
           </select>
         </div>
 
-        <!-- Taluka Filter -->
+        <!-- Taluka Filter (dropdown based on selected district) -->
         <div class="filter-group">
           <label class="filter-label">
             <i class="fas fa-map-marker-alt"></i>
             Taluka / Center
           </label>
-          <input type="text" class="filter-input" placeholder="Enter taluka or center" [(ngModel)]="taluka"
-            (input)="onTalukaChange()">
+          <select class="filter-select" [(ngModel)]="selectedTaluka" (ngModelChange)="onTalukaChange()"
+            [disabled]="!selectedCityId || talukas.length === 0">
+            <option value="">All Talukas</option>
+            <option *ngFor="let t of talukas" [ngValue]="t">{{ t }}</option>
+          </select>
         </div>
 
         <!-- Rows per page -->

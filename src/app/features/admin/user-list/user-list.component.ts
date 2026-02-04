@@ -8,9 +8,8 @@ import { UserFormModalComponent } from './user-form-modal/user-form-modal.compon
 import { ConfirmModalComponent } from './confirm-modal/confirm-modal.component';
 import { DateRangeModalComponent } from './date-range-modal/date-range-modal.component';
 import { AuditLogsService, AuditLog } from '../../audit-logs/services/audit-logs.service';
-import { StateService } from './services/state.service';
-import { CityService } from './services/city.service';
 import { ApiService } from '../../../shared/services/api.service';
+import { STATE_MAHARASHTRA, DISTRICTS, getTalukasForDistrict } from '../../../shared/constants/location.constants';
 
 @Component({
   selector: 'app-user-list',
@@ -36,22 +35,11 @@ export class UserListComponent implements OnInit, OnDestroy {
   stateFilter = '';
   cityFilter = '';
   centerFilter = '';
-  
-  // State and City data
-  states: any[] = [];
-  allStates: any[] = []; // Store all states for client-side pagination
-  cities: any[] = [];
-  allCities: any[] = []; // Store all cities for client-side pagination
-  statesLoading = false;
-  citiesLoading = false;
-  isStateDropdownOpen = false;
-  isCityDropdownOpen = false;
-  statesPage = 1;
-  citiesPage = 1;
-  statesLimit = 30;
-  citiesLimit = 30;
-  statesHasMore = true;
-  citiesHasMore = true;
+
+  // Static location data (Maharashtra districts and talukas)
+  readonly stateOptions = [STATE_MAHARASHTRA];
+  readonly districts = DISTRICTS;
+  talukas: string[] = [];
 
   // Action menu state
   openActionMenuId: string | null = null;
@@ -87,8 +75,6 @@ export class UserListComponent implements OnInit, OnDestroy {
     private router: Router,
     private userService: UserService,
     private auditLogsService: AuditLogsService,
-    private stateService: StateService,
-    private cityService: CityService,
     private apiService: ApiService,
     private elementRef: ElementRef
   ) {
@@ -108,7 +94,6 @@ export class UserListComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadUsers();
-    this.loadStates();
   }
 
   @HostListener('document:click', ['$event'])
@@ -119,139 +104,27 @@ export class UserListComponent implements OnInit, OnDestroy {
       this.closeActionMenu();
     }
     if (!this.elementRef.nativeElement.contains(event.target)) {
-      this.isStateDropdownOpen = false;
-      this.isCityDropdownOpen = false;
+      // dropdowns closed via template select elements now
     }
   }
-  
+
   @HostListener('window:scroll', ['$event'])
-  onWindowScroll(): void {
-    // Close dropdown on scroll to prevent positioning issues
+  onWindowScroll(_event?: Event): void {
     this.closeActionMenu();
   }
 
-  loadStates(reset: boolean = false): void {
-    if (reset) {
-      this.states = [];
-      this.statesPage = 1;
-      this.statesHasMore = false;
-    }
-
-    if (this.states.length > 0 && !reset) {
-      return;
-    }
-
-    this.statesLoading = true;
-    this.stateService.getStates()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (response: any) => {
-          const responseData = response?.data || response || [];
-          this.allStates = Array.isArray(responseData) ? responseData : (responseData?.data || []);
-          
-          // For scrollable pagination, load first batch
-          if (reset || this.states.length === 0) {
-            this.states = this.allStates.slice(0, this.statesLimit);
-            this.statesHasMore = this.allStates.length > this.statesLimit;
-          } else {
-            const startIndex = this.states.length;
-            const endIndex = startIndex + this.statesLimit;
-            this.states = [...this.states, ...this.allStates.slice(startIndex, endIndex)];
-            this.statesHasMore = endIndex < this.allStates.length;
-          }
-          
-          this.statesLoading = false;
-        },
-        error: (error) => {
-          console.error('Error loading states:', error);
-          this.statesLoading = false;
-        }
-      });
-  }
-
-  loadCities(reset: boolean = false, stateId?: string): void {
-    if (!stateId) {
-      this.cities = [];
-      return;
-    }
-
-    if (reset) {
-      this.cities = [];
-      this.citiesPage = 1;
-      this.citiesHasMore = false;
-    }
-
-    this.citiesLoading = true;
-    this.cityService.getCitiesByState(stateId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (response: any) => {
-          const responseData = response?.data || response || [];
-          this.allCities = Array.isArray(responseData) ? responseData : (responseData?.data || []);
-          
-          // For scrollable pagination, load first batch
-          if (reset || this.cities.length === 0) {
-            this.cities = this.allCities.slice(0, this.citiesLimit);
-            this.citiesHasMore = this.allCities.length > this.citiesLimit;
-          } else {
-            const startIndex = this.cities.length;
-            const endIndex = startIndex + this.citiesLimit;
-            this.cities = [...this.cities, ...this.allCities.slice(startIndex, endIndex)];
-            this.citiesHasMore = endIndex < this.allCities.length;
-          }
-          
-          this.citiesLoading = false;
-        },
-        error: (error) => {
-          console.error('Error loading cities:', error);
-          this.citiesLoading = false;
-        }
-      });
-  }
-
-  onStateScroll(event: Event): void {
-    const element = event.target as HTMLElement;
-    const scrollTop = element.scrollTop;
-    const scrollHeight = element.scrollHeight;
-    const clientHeight = element.clientHeight;
-
-    if (scrollTop + clientHeight >= scrollHeight * 0.8 && !this.statesLoading && this.statesHasMore) {
-      this.statesPage++;
-      this.loadStates(false);
-    }
-  }
-
-  onCityScroll(event: Event): void {
-    const element = event.target as HTMLElement;
-    const scrollTop = element.scrollTop;
-    const scrollHeight = element.scrollHeight;
-    const clientHeight = element.clientHeight;
-
-    if (scrollTop + clientHeight >= scrollHeight * 0.8 && !this.citiesLoading && this.citiesHasMore) {
-      this.citiesPage++;
-      const selectedState = this.states.find(s => s.name === this.stateFilter);
-      if (selectedState) {
-        this.loadCities(false, selectedState._id);
-      }
-    }
-  }
-
-  onStateChange(stateName: string): void {
-    this.stateFilter = stateName;
+  onStateChange(): void {
+    this.stateFilter = this.stateFilter || '';
     this.cityFilter = '';
-    this.cities = [];
+    this.centerFilter = '';
+    this.talukas = [];
     this.currentPage = 1;
-    
-    const selectedState = this.states.find(s => s.name === stateName);
-    if (selectedState) {
-      this.loadCities(true, selectedState._id);
-    }
-    
     this.loadUsers();
   }
 
-  onCityChange(cityName: string): void {
-    this.cityFilter = cityName;
+  onCityChange(): void {
+    this.talukas = getTalukasForDistrict(this.cityFilter);
+    this.centerFilter = '';
     this.currentPage = 1;
     this.loadUsers();
   }
@@ -265,39 +138,9 @@ export class UserListComponent implements OnInit, OnDestroy {
     this.stateFilter = '';
     this.cityFilter = '';
     this.centerFilter = '';
-    this.cities = [];
+    this.talukas = [];
     this.currentPage = 1;
     this.loadUsers();
-  }
-
-  toggleStateDropdown(): void {
-    this.isStateDropdownOpen = !this.isStateDropdownOpen;
-    if (this.isStateDropdownOpen && this.states.length === 0) {
-      this.loadStates(true);
-    }
-  }
-
-  toggleCityDropdown(): void {
-    if (!this.stateFilter) return;
-    this.isCityDropdownOpen = !this.isCityDropdownOpen;
-    if (this.isCityDropdownOpen && this.cities.length === 0) {
-      const selectedState = this.states.find(s => s.name === this.stateFilter);
-      if (selectedState) {
-        this.loadCities(true, selectedState._id);
-      }
-    }
-  }
-
-  selectState(state: any): void {
-    this.stateFilter = state.name;
-    this.isStateDropdownOpen = false;
-    this.onStateChange(state.name);
-  }
-
-  selectCity(city: any): void {
-    this.cityFilter = city.name;
-    this.isCityDropdownOpen = false;
-    this.onCityChange(city.name);
   }
 
   getSelectedStateName(): string {
@@ -305,7 +148,7 @@ export class UserListComponent implements OnInit, OnDestroy {
   }
 
   getSelectedCityName(): string {
-    return this.cityFilter || 'Select City';
+    return this.cityFilter || 'Select City / District';
   }
 
   openLogsModal(userId: string): void {
