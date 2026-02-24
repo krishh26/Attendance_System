@@ -22,6 +22,14 @@ export interface TimeLogEntry {
   __v: number;
 }
 
+/** Summary counts from backend (full filtered dataset, not paginated). */
+export interface TimeLogSummary {
+  totalEmployees: number;
+  presentToday: number;
+  lateToday: number;
+  absentToday: number;
+}
+
 export interface TimeLogResponse {
   code: number;
   status: string;
@@ -38,6 +46,8 @@ export interface TimeLogResponse {
     total: number;
     totalPages: number;
   };
+  /** DB-level counts for the full filtered set (date + state + city + taluka). */
+  summary?: TimeLogSummary;
   timestamp: string;
   path: string;
 }
@@ -50,6 +60,30 @@ export interface TimeLogParams {
   state?: string;
   city?: string;
   center?: string; // taluka/center filter
+  /** Filter by derived status: 'present' | 'late' (absent handled separately later) */
+  status?: string;
+}
+
+/** Response from dedicated users-by-status API (present/late/absent/total listing). */
+export interface UsersByStatusParams {
+  date: string;
+  status: 'present' | 'late' | 'absent' | 'total';
+  page: number;
+  limit: number;
+  search?: string;
+  state?: string;
+  city?: string;
+  center?: string;
+}
+
+export interface UsersByStatusResponse {
+  code: number;
+  status: string;
+  data: TimeLogEntry[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+  summary?: TimeLogSummary;
+  timestamp: string;
+  path: string;
 }
 
 @Injectable({
@@ -60,7 +94,7 @@ export class TimelogService {
 
   // Get all users time logs with pagination and date filter
   getAllUsersTimeLogs(params: TimeLogParams): Observable<TimeLogResponse> {
-    const { date, page, limit, search, state, city, center } = params;
+    const { date, page, limit, search, state, city, center, status } = params;
     let endpoint = `/attendance/admin/all-users?date=${date}&page=${page}&limit=${limit}`;
     
     // Add search parameter if provided
@@ -79,6 +113,11 @@ export class TimelogService {
     if (center && center.trim()) {
       endpoint += `&center=${encodeURIComponent(center.trim())}`;
     }
+
+    // Backend filters by derived status (present | late | absent)
+    if (status && (status === 'present' || status === 'late' || status === 'absent')) {
+      endpoint += `&status=${encodeURIComponent(status)}`;
+    }
     
     return this.apiService.get<TimeLogResponse>(endpoint).pipe(
       catchError((error: any) => {
@@ -87,6 +126,28 @@ export class TimelogService {
         return of(this.getMockTimeLogResponse(params));
       })
     );
+  }
+
+  /**
+   * Dedicated API: get user listing by status for a date (present / late / absent / total).
+   * Uses 10 AM IST for late cutoff. Prefer this for the detail modal to avoid empty lists.
+   */
+  getUsersByStatusForDate(params: UsersByStatusParams): Observable<UsersByStatusResponse> {
+    const { date, status, page, limit, search, state, city, center } = params;
+    let endpoint = `/attendance/admin/users-by-status?date=${encodeURIComponent(date)}&status=${encodeURIComponent(status)}&page=${page}&limit=${limit}`;
+    if (search && search.trim()) {
+      endpoint += `&search=${encodeURIComponent(search.trim())}`;
+    }
+    if (state && state.trim()) {
+      endpoint += `&state=${encodeURIComponent(state.trim())}`;
+    }
+    if (city && city.trim()) {
+      endpoint += `&city=${encodeURIComponent(city.trim())}`;
+    }
+    if (center && center.trim()) {
+      endpoint += `&center=${encodeURIComponent(center.trim())}`;
+    }
+    return this.apiService.get<UsersByStatusResponse>(endpoint);
   }
 
   // Generate mock response for demo purposes

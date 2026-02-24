@@ -1,0 +1,134 @@
+<div class="modal-overlay" *ngIf="isOpen" (click)="close()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ modalTitle }}</h2>
+      <button type="button" class="btn-close" (click)="close()" title="Close">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="modal-filters">
+      <div class="filter-row">
+        <div class="filter-group">
+          <label class="filter-label"><i class="fas fa-calendar-alt"></i> Date</label>
+          <input type="date" [(ngModel)]="selectedDate" (change)="onDateChange()" class="filter-input">
+        </div>
+        <div class="filter-group">
+          <label class="filter-label"><i class="fas fa-flag"></i> State</label>
+          <select class="filter-select" [(ngModel)]="selectedStateId" (ngModelChange)="onStateChange()">
+            <option value="">All</option>
+            <option *ngFor="let s of stateOptions" [value]="s.id">{{ s.name }}</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label"><i class="fas fa-city"></i> City</label>
+          <select class="filter-select" [(ngModel)]="selectedCityId" (ngModelChange)="onCityChange()">
+            <option value="">All</option>
+            <option *ngFor="let d of districts" [value]="d">{{ d }}</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label"><i class="fas fa-map-marker-alt"></i> Taluka</label>
+          <select class="filter-select" [(ngModel)]="selectedTaluka" (ngModelChange)="onTalukaChange()">
+            <option value="">All</option>
+            <option *ngFor="let t of talukas" [value]="t">{{ t }}</option>
+          </select>
+        </div>
+        <div class="filter-group search-group">
+          <label class="filter-label"><i class="fas fa-search"></i> Search</label>
+          <input type="text" class="filter-input" placeholder="Name, email, mobile..."
+            [ngModel]="searchTerm" (ngModelChange)="searchTerm=$event; onSearchChange()">
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="error" class="error-message">{{ error }}</div>
+
+    <div *ngIf="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading...</p>
+    </div>
+
+    <div *ngIf="!loading" class="modal-body">
+      <div class="table-info" *ngIf="totalItems > 0">
+        <span>{{ rangeStart }}–{{ rangeEnd }} of {{ totalItems }}</span>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Employee Name</th>
+              <th>Date</th>
+              <th>Check In Time</th>
+              <th>Check Out Time</th>
+              <th>Total Hours</th>
+              <th>Status</th>
+              <th>Check In Location</th>
+              <th>Check Out Location</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let entry of entries">
+              <td>{{ getEmployeeName(entry) }}</td>
+              <td>{{ formatDate(entry.date) }}</td>
+              <td>{{ entry.checkInTime ? (entry.checkInTime | date:'h:mm a':'UTC') : '--' }}</td>
+              <td>
+                <span *ngIf="entry.isCheckedOut && entry.checkOutTime">{{ entry.checkOutTime | date:'h:mm a':'UTC' }}</span>
+                <span *ngIf="!entry.isCheckedOut || !entry.checkOutTime" class="not-checked-out">--</span>
+              </td>
+              <td>{{ getTotalHours(entry) }}</td>
+              <td>
+                <span class="status-badge" [ngClass]="getStatusClassForEntry(entry)">
+                  {{ getStatusTextForEntry(entry) }}
+                </span>
+              </td>
+              <td>
+                <span *ngIf="hasValidCoordinates(entry.checkInLatitude, entry.checkInLongitude)">
+                  {{ entry.checkInLatitude | number:'1.4-4' }}, {{ entry.checkInLongitude | number:'1.4-4' }}
+                </span>
+                <span *ngIf="!hasValidCoordinates(entry.checkInLatitude, entry.checkInLongitude)" class="no-location">--</span>
+              </td>
+              <td>
+                <span *ngIf="hasValidCoordinates(entry.checkOutLatitude, entry.checkOutLongitude)">
+                  {{ entry.checkOutLatitude | number:'1.4-4' }}, {{ entry.checkOutLongitude | number:'1.4-4' }}
+                </span>
+                <span *ngIf="!hasValidCoordinates(entry.checkOutLatitude, entry.checkOutLongitude)" class="no-location">--</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div *ngIf="entries.length === 0" class="empty-state">
+        <i class="fas fa-inbox"></i>
+        <p>No records found</p>
+      </div>
+      <div *ngIf="!loading && totalPages > 1" class="pagination-container">
+        <div class="pagination">
+          <button type="button" class="btn-page" [disabled]="currentPage === 1" (click)="onPageChange(1)" title="First">
+            <i class="fas fa-angle-double-left"></i>
+          </button>
+          <button type="button" class="btn-page" [disabled]="currentPage === 1" (click)="onPageChange(currentPage - 1)">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <button *ngFor="let page of pages" type="button" class="btn-page" [class.active]="page === currentPage"
+            (click)="onPageChange(page)">{{ page }}</button>
+          <button type="button" class="btn-page" [disabled]="currentPage === totalPages" (click)="onPageChange(currentPage + 1)">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+          <button type="button" class="btn-page" [disabled]="currentPage === totalPages" (click)="onPageChange(totalPages)" title="Last">
+            <i class="fas fa-angle-double-right"></i>
+          </button>
+        </div>
+        <div class="rows-selection">
+          <label>Rows</label>
+          <select [ngModel]="itemsPerPage" (ngModelChange)="onPageSizeChange($event)">
+            <option [ngValue]="10">10</option>
+            <option [ngValue]="25">25</option>
+            <option [ngValue]="50">50</option>
+            <option [ngValue]="100">100</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,7 +1,7 @@
 <div class="timelog-container">
-  <!-- Summary Cards -->
+  <!-- Summary Cards (click to open detail modal) -->
   <div class="summary-cards">
-    <div class="summary-card">
+    <div class="summary-card clickable" (click)="openDetailModal('total')" title="View total employees list">
       <div class="card-icon">
         <i class="fas fa-users"></i>
       </div>
@@ -11,7 +11,7 @@
       </div>
     </div>
 
-    <div class="summary-card">
+    <div class="summary-card clickable" (click)="openDetailModal('present')" title="View present today list">
       <div class="card-icon present">
         <i class="fas fa-user-check"></i>
       </div>
@@ -21,7 +21,7 @@
       </div>
     </div>
 
-    <div class="summary-card">
+    <div class="summary-card clickable" (click)="openDetailModal('late')" title="View late today list">
       <div class="card-icon late">
         <i class="fas fa-user-clock"></i>
       </div>
@@ -31,7 +31,7 @@
       </div>
     </div>
 
-    <div class="summary-card">
+    <div class="summary-card clickable" (click)="openDetailModal('absent')" title="View absent today list">
       <div class="card-icon absent">
         <i class="fas fa-user-times"></i>
       </div>
@@ -83,30 +83,6 @@
           (input)="onSearchChange($event)">
         <button *ngIf="searchTerm" class="btn-clear-search" (click)="clearSearch()" title="Clear search">
           <i class="fas fa-times"></i>
-        </button>
-      </div>
-
-      <!-- Status Filter Buttons -->
-      <div class="filter-buttons">
-        <button class="btn-filter" [class.active]="selectedStatus === 'all'"
-          (click)="selectedStatus = 'all'; onStatusChange()">
-          <i class="fas fa-list"></i>
-          All
-        </button>
-        <button class="btn-filter" [class.active]="selectedStatus === 'present'"
-          (click)="selectedStatus = 'present'; onStatusChange()">
-          <i class="fas fa-check-circle"></i>
-          Present
-        </button>
-        <button class="btn-filter" [class.active]="selectedStatus === 'late'"
-          (click)="selectedStatus = 'late'; onStatusChange()">
-          <i class="fas fa-clock"></i>
-          Late
-        </button>
-        <button class="btn-filter" [class.active]="selectedStatus === 'absent'"
-          (click)="selectedStatus = 'absent'; onStatusChange()">
-          <i class="fas fa-times-circle"></i>
-          Absent
         </button>
       </div>
     </div>
@@ -223,7 +199,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let entry of filteredTimeEntries">
+        <tr *ngFor="let entry of timeEntries">
           <td>{{ getEmployeeName(entry) }}</td>
           <td>{{ formatDate(entry.date) }}</td>
           <td>
@@ -289,7 +265,7 @@
   </div>
 
   <!-- Empty State -->
-  <div *ngIf="!loading && filteredTimeEntries.length === 0" class="empty-state">
+  <div *ngIf="!loading && timeEntries.length === 0" class="empty-state">
     <i class="fas fa-inbox"></i>
     <p>No time logs found</p>
     <span>Try adjusting your filters or select a different date</span>
@@ -338,4 +314,10 @@
   <app-admin-timelog-modal [isOpen]="showAdminModal" [mode]="adminModalMode" [editData]="selectedTimeLog"
     (closeModal)="closeAdminModal()" (actionCompleted)="onAdminActionCompleted($event)">
   </app-admin-timelog-modal>
+
+  <!-- Detail Modal (Present / Late / Absent / Total listing) -->
+  <app-timelog-detail-modal [isOpen]="showDetailModal" [modalType]="detailModalType"
+    [initialDate]="selectedDate" [initialStateId]="selectedStateId" [initialCityId]="selectedCityId"
+    [initialTaluka]="selectedTaluka" (closeModal)="closeDetailModal()">
+  </app-timelog-detail-modal>
 </div>

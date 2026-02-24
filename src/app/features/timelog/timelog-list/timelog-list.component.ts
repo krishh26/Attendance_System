@@ -7,6 +7,7 @@ import { TimelogService, TimeLogEntry, TimeLogResponse, TimeLogParams } from '..
 import { AttendanceService } from '../services/attendance.service';
 import { AttendanceModalComponent } from './attendance-modal/attendance-modal.component';
 import { AdminTimeLogModalComponent } from './admin-timelog-modal/admin-timelog-modal.component';
+import { TimelogDetailModalComponent, DetailModalType } from './timelog-detail-modal/timelog-detail-modal.component';
 import { STATE_MAHARASHTRA, DISTRICTS, getTalukasForDistrict } from '../../../shared/constants/location.constants';
 import * as XLSX from 'xlsx';
 import { AuthService } from '../../auth/services/auth.service';
@@ -17,7 +18,7 @@ import { PermissionService } from '../../../shared/services/permission.service';
   templateUrl: './timelog-list.component.html',
   styleUrls: ['./timelog-list.component.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, AttendanceModalComponent, AdminTimeLogModalComponent],
+  imports: [CommonModule, FormsModule, AttendanceModalComponent, AdminTimeLogModalComponent, TimelogDetailModalComponent],
   providers: [DatePipe]
 })
 export class TimelogListComponent implements OnInit, OnDestroy {
@@ -32,7 +33,6 @@ export class TimelogListComponent implements OnInit, OnDestroy {
   // Search and filter properties
   searchTerm = '';
   selectedDate: string;
-  selectedStatus = 'all';
   selectedStateId = '';
   selectedCityId = '';
   selectedTaluka = '';
@@ -72,6 +72,10 @@ export class TimelogListComponent implements OnInit, OnDestroy {
   adminModalMode: 'add' | 'edit' = 'add';
   selectedTimeLog: any = null;
   isAdmin = false;
+
+  // Detail modal (card click → user listing by type)
+  showDetailModal = false;
+  detailModalType: DetailModalType = 'total';
 
   // RxJS subjects for cleanup
   private destroy$ = new Subject<void>();
@@ -151,11 +155,26 @@ export class TimelogListComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (response: TimeLogResponse) => {
           this.loading = false;
-          this.timeEntries = response.data.data;
-          this.totalItems = response.pagination.total;
-          this.totalPages = response.pagination.totalPages;
-          this.currentPage = response.pagination.page;
-          this.updateSummaryStats();
+          // Support both response shapes: data as array or data.data (API may wrap in data)
+          const dataPayload = response.data as any;
+          this.timeEntries = Array.isArray(dataPayload) ? dataPayload : (dataPayload?.data ?? []);
+          // Table total = pagination total (records for selected date); cards use summary
+          this.totalItems = response.pagination?.total ?? (dataPayload?.pagination?.total) ?? 0;
+          this.totalPages = response.pagination?.totalPages ?? dataPayload?.pagination?.totalPages ?? 1;
+          this.currentPage = response.pagination?.page ?? dataPayload?.pagination?.page ?? 1;
+          // Summary may be at top level or nested in response.data (same filters as backend)
+          const summary = response.summary ?? dataPayload?.summary;
+          if (summary) {
+            this.summaryStats = {
+              totalEmployees: summary.totalEmployees,
+              presentToday: summary.presentToday,
+              lateToday: summary.lateToday,
+              absentToday: summary.absentToday,
+              averageHours: this.summaryStats.averageHours
+            };
+          } else {
+            this.updateSummaryStatsFallback();
+          }
         },
         error: (error) => {
           this.loading = false;
@@ -165,35 +184,23 @@ export class TimelogListComponent implements OnInit, OnDestroy {
       });
   }
 
-  // Update summary statistics based on current data
-  private updateSummaryStats(): void {
+  // Fallback when backend does not return summary (e.g. old API)
+  private updateSummaryStatsFallback(): void {
     const total = this.timeEntries.length;
-
     let present = 0;
     let late = 0;
-
-    // Derive status based on check-in time (IST 10:30 AM cutoff)
     for (const entry of this.timeEntries) {
       const derivedStatus = this.getDerivedStatus(entry).toLowerCase();
-      if (derivedStatus === 'present') {
-        present++;
-      } else if (derivedStatus === 'late') {
-        late++;
-      }
+      if (derivedStatus === 'present') present++;
+      else if (derivedStatus === 'late') late++;
     }
-
-    // Absent = total - (present + late)
-    let absent = total - present - late;
-    if (absent < 0) {
-      absent = 0;
-    }
-
+    let absent = Math.max(0, total - present - late);
     this.summaryStats = {
       totalEmployees: total,
       presentToday: present,
       lateToday: late,
       absentToday: absent,
-      averageHours: 0 // Calculate if needed
+      averageHours: this.summaryStats.averageHours
     };
   }
 
@@ -244,14 +251,6 @@ export class TimelogListComponent implements OnInit, OnDestroy {
     return state ? state.name : undefined;
   }
 
-  // Handle status filter change
-  onStatusChange(): void {
-    // Status filter is applied client-side, no need to reload
-    // But we can reload if you want server-side status filtering
-    // this.currentPage = 1;
-    // this.loadTimeLogs();
-  }
-
   // Handle page change
   onPageChange(page: number): void {
     if (page >= 1 && page <= this.totalPages) {
@@ -273,18 +272,9 @@ export class TimelogListComponent implements OnInit, OnDestroy {
     return pages;
   }
 
-  // Filter time entries based on status (search is now handled server-side)
+  // Present/late are filtered by backend. Absent is client-side until backend support is added.
   get filteredTimeEntries(): TimeLogEntry[] | any[] {
-    let filtered = this.timeEntries;
-
-    // Apply status filter (client-side since it's already loaded)
-    if (this.selectedStatus !== 'all') {
-      filtered = filtered.filter(entry =>
-        this.getDerivedStatus(entry).toLowerCase() === this.selectedStatus.toLowerCase()
-      );
-    }
-
-    return filtered;
+    return this.timeEntries;
   }
 
   // Compute derived status based on the SAME time that is shown in the list.
@@ -443,8 +433,8 @@ export class TimelogListComponent implements OnInit, OnDestroy {
   }
 
   // Open map with coordinates
-  openMapWithCoordinates(latitude: number, longitude: number, type: 'checkin' | 'checkout'): void {
-    if (latitude && longitude) {
+  openMapWithCoordinates(latitude: number | undefined, longitude: number | undefined, type: 'checkin' | 'checkout'): void {
+    if (latitude != null && longitude != null && !isNaN(latitude) && !isNaN(longitude)) {
       // Use Google Maps with coordinates
       const mapUrl = `https://www.google.com/maps?q=${latitude},${longitude}&z=15&t=m`;
       window.open(mapUrl, '_blank');
@@ -452,7 +442,7 @@ export class TimelogListComponent implements OnInit, OnDestroy {
   }
 
   // Check if coordinates are valid
-  hasValidCoordinates(latitude: number, longitude: number): boolean {
+  hasValidCoordinates(latitude: number | undefined, longitude: number | undefined): boolean {
     return latitude != null && longitude != null &&
       !isNaN(latitude) && !isNaN(longitude) &&
       latitude !== 0 && longitude !== 0;
@@ -468,7 +458,6 @@ export class TimelogListComponent implements OnInit, OnDestroy {
   clearAllFilters(): void {
     this.searchTerm = '';
     this.selectedDate = this.timelogService.getTodayDate();
-    this.selectedStatus = 'all';
     this.selectedStateId = '';
     this.selectedCityId = '';
     this.selectedTaluka = '';
@@ -480,7 +469,6 @@ export class TimelogListComponent implements OnInit, OnDestroy {
   // Check if any filters are active
   hasActiveFilters(): boolean {
     return this.searchTerm.trim() !== '' ||
-      this.selectedStatus !== 'all' ||
       this.selectedDate !== this.timelogService.getTodayDate() ||
       !!this.selectedStateId ||
       !!this.selectedCityId ||
@@ -610,6 +598,15 @@ export class TimelogListComponent implements OnInit, OnDestroy {
   closeAdminModal(): void {
     this.showAdminModal = false;
     this.selectedTimeLog = null;
+  }
+
+  openDetailModal(type: DetailModalType): void {
+    this.detailModalType = type;
+    this.showDetailModal = true;
+  }
+
+  closeDetailModal(): void {
+    this.showDetailModal = false;
   }
 
   onAdminActionCompleted(response: any): void {
