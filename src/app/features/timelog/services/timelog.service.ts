@@ -130,7 +130,7 @@ export class TimelogService {
 
   /**
    * Dedicated API: get user listing by status for a date (present / late / absent / total).
-   * Uses 10 AM IST for late cutoff. Prefer this for the detail modal to avoid empty lists.
+   * Uses 10:10 AM IST for late cutoff. Prefer this for the detail modal to avoid empty lists.
    */
   getUsersByStatusForDate(params: UsersByStatusParams): Observable<UsersByStatusResponse> {
     const { date, status, page, limit, search, state, city, center } = params;

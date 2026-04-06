@@ -282,8 +282,8 @@ export class TimelogListComponent implements OnInit, OnDestroy {
   // {{ entry.checkInTime | date:'h:mm a':'UTC' }}
   //
   // Rule:
-  // - Late  => check-in AFTER 10:30 AM (displayed time)
-  // - Present => check-in at or BEFORE 10:30 AM
+  // - Late  => check-in AFTER 10:10 AM (displayed time)
+  // - Present => check-in at or BEFORE 10:10 AM
   // - Absent => no check-in or explicit absent from backend
   getDerivedStatus(entry: TimeLogEntry): string {
     const baseStatus = (entry.status || '').toLowerCase();
@@ -314,8 +314,8 @@ export class TimelogListComponent implements OnInit, OnDestroy {
 
       const totalMinutes = hours * 60 + minutes;
 
-      // 10:30 AM cutoff in minutes (same "display" timezone as listing)
-      const cutoffMinutes = 10 * 60 + 30;
+      // 10:10 AM cutoff in minutes (same "display" timezone as listing)
+      const cutoffMinutes = 10 * 60 + 10;
 
       if (totalMinutes > cutoffMinutes) {
         return 'late';

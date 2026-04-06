@@ -206,7 +206,7 @@ export class TimelogDetailModalComponent implements OnChanges {
       if (!formatted) return entry.status || 'present';
       const [h, m] = formatted.split(':').map(Number);
       const totalMinutes = (h ?? 0) * 60 + (m ?? 0);
-      return totalMinutes > 630 ? 'late' : 'present';
+      return totalMinutes > 610 ? 'late' : 'present';
     } catch {
       return entry.status || 'present';
     }
